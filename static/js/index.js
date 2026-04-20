@@ -1,13 +1,12 @@
 let currentDormImages = []; // เก็บ URL รูปภาพทั้งหมดของหอพักที่เปิดอยู่
-let currentImageIndex = 0;   // เก็บว่าตอนนี้ดูรูปที่เท่าไหร่
-let currentDormIdForBooking = null; // เก็บ ID ไว้ส่งต่อระหว่าง Modal
+let currentImageIndex = 0; // เก็บว่าตอนนี้ดูรูปที่เท่าไหร่
 
 
 const currentVisitorId = getOrCreateVisitorId();
 console.log("Current Visitor ID:", currentVisitorId);
 
 // --- ส่วนที่เพิ่มใหม่: ระบบ Login ---
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
+document.getElementById('loginForm').addEventListener('submit', async(e) => {
     e.preventDefault();
 
     const identity = document.getElementById('login_identity').value;
@@ -41,10 +40,10 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 
             // 2. แสดงแจ้งเตือน
             alert('ยินดีต้อนรับ! เข้าสู่ระบบในฐานะ ' + data.role);
-            
+
             // 3. ปิด Modal และ Redirect
             toggleModal();
-            
+
             let targetUrl = data.role === 'admin' ? '/admin/dashboard' : '/owner/dashboard';
 
             // ใช้ replace แทน href เพื่อไม่ให้หน้า Login ค้างอยู่ใน History stack
@@ -53,7 +52,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             // --- ส่วนที่ปรับปรุงใหม่ ---
             if (response.status === 403) {
                 // กรณีโดนดัก is_approved = False
-                alert('🚫 เข้าสู่ระบบไม่ได้: ' + data.detail); 
+                alert('🚫 เข้าสู่ระบบไม่ได้: ' + data.detail);
             } else if (response.status === 401) {
                 // กรณีรหัสผิด หรือไม่พบ User
                 alert('🔑 ' + data.detail);
@@ -73,7 +72,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 });
 
 // --- ระบบลงทะเบียนเจ้าของหอพัก (Owner Register) ---
-document.getElementById('registerForm').addEventListener('submit', async (e) => {
+document.getElementById('registerForm').addEventListener('submit', async(e) => {
     e.preventDefault();
 
     // ดึงค่าจาก ID ที่เราตั้งไว้ใน Modal ลงทะเบียน
@@ -100,7 +99,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
             // สมัครสำเร็จ
             alert('ลงทะเบียนสำเร็จ! กรุณารอผู้ดูแลระบบอนุมัติบัญชีของคุณ');
             toggleRegisterModal(); // ปิด Modal ลงทะเบียน
-            switchToLogin();       // สลับไปหน้า Login เพื่อให้เขารอเข้าสู่ระบบ
+            switchToLogin(); // สลับไปหน้า Login เพื่อให้เขารอเข้าสู่ระบบ
         } else {
             // ถ้าเป็น Error 422 หรืออื่นๆ จะได้เห็นข้อความจาก Server
             alert('⚠️ ไม่สามารถลงทะเบียนได้: ' + (result.detail || 'ข้อมูลไม่ถูกต้อง'));
@@ -116,23 +115,23 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
 // ฟังก์ชันสำหรับโหลดหอพักแนะนำมาแสดงที่หน้าแรก
 async function fetchRecommendedDorms(targetUrl = '/api/public/dorms') {
     const container = document.getElementById('dorm-list-container');
-    
+
     // แสดงสถานะกำลังโหลด
     container.innerHTML = `
         <div class="col-span-full text-center py-20">
             <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-t-transparent"></div>
             <p class="mt-4 text-slate-500 font-medium">กำลังค้นหาหอพักที่ดีที่สุดสำหรับคุณ...</p>
         </div>`;
-    
+
     try {
         // ใช้ targetUrl ที่ส่งมา (ถ้าไม่มีจะเป็นหน้าแรก + ป้องกัน Cache ด้วย TimeStamp)
-        const finalUrl = targetUrl.includes('?') 
-            ? `${targetUrl}&t=${new Date().getTime()}` 
-            : `${targetUrl}?t=${new Date().getTime()}`;
+        const finalUrl = targetUrl.includes('?') ?
+            `${targetUrl}&t=${new Date().getTime()}` :
+            `${targetUrl}?t=${new Date().getTime()}`;
 
         const response = await fetch(finalUrl);
         if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลได้');
-        
+
         const dorms = await response.json();
 
         // กรณีไม่มีข้อมูล
@@ -154,13 +153,13 @@ async function fetchRecommendedDorms(targetUrl = '/api/public/dorms') {
 
         // --- ใช้ Logic วาดเดิมของคุณเป๊ะๆ ---
         dorms.forEach(dorm => {
-            const imageUrl = (dorm.images && dorm.images.length > 0) 
-                ? `/static/uploads/dorms/${dorm.images[0].filename}` 
-                : 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800';
+            const imageUrl = (dorm.images && dorm.images.length > 0) ?
+                `/static/uploads/dorms/${dorm.images[0].filename}` :
+                'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800';
 
-            const vacancyBadge = dorm.vacancy_count > 0 
-                ? `<span class="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-emerald-600 shadow-sm border border-emerald-100">ว่าง ${dorm.vacancy_count} ห้อง</span>`
-                : `<span class="bg-slate-900/80 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm">เต็มแล้ว</span>`;
+            const vacancyBadge = dorm.vacancy_count > 0 ?
+                `<span class="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-emerald-600 shadow-sm border border-emerald-100">ว่าง ${dorm.vacancy_count} ห้อง</span>` :
+                `<span class="bg-slate-900/80 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm">เต็มแล้ว</span>`;
 
             const viewCountHTML = `
                 <div class="flex items-center gap-1.5 text-slate-400 text-xs font-medium bg-slate-50 px-2.5 py-1 rounded-lg">
@@ -208,7 +207,7 @@ async function fetchRecommendedDorms(targetUrl = '/api/public/dorms') {
 // ฟังก์ชันสำหรับเปิดดูรายละเอียด
 function viewDormDetail(dormId) {
     // ในอนาคตคุณจะสร้างหน้า dorm_detail.html?id=...
-    window.location.href = `/dormitory/${dormId}`; 
+    window.location.href = `/dormitory/${dormId}`;
 }
 
 
@@ -583,62 +582,43 @@ document.getElementById('search-input').addEventListener('keypress', (e) => {
 });
 
 
-// จังหวะที่ 1: กดปุ่มจากหน้าหลัก แล้วแสดงหน้าคั่น (Intro)
+
+// ฟังก์ชันเปิด Modal จอง
 function openBookingModal(dormId) {
-    currentDormIdForBooking = dormId; 
-
-    // 1. ปิดหน้าข้อมูลหอพักเดิม (publicDormModal)
+    // 1. ดึงชื่อหอพักเก็บไว้ก่อน
+    const dormNameElement = document.querySelector('#publicDormContent h2');
+    const dormName = dormNameElement ? dormNameElement.innerText : "หอพัก";
+    
+    // 2. ปิด Modal รายละเอียดหอพักก่อน (เพื่อไม่ให้มันซ้อนกัน)
     const publicModal = document.getElementById('publicDormModal');
-    if (publicModal) publicModal.classList.add('hidden');
-
-    // 2. แสดงหน้าคั่น (bookingIntroModal)
-    const introModal = document.getElementById('bookingIntroModal');
-    if (introModal) {
-        introModal.classList.remove('hidden');
-        introModal.classList.add('flex');
+    if (publicModal) {
+        publicModal.classList.add('hidden');
     }
 
-    // ล็อกการ Scroll ของหน้าจอ
+    // 3. ใส่ข้อมูลใน Booking Modal
+    document.getElementById('booking-dorm-id').value = dormId;
+    document.getElementById('booking-dorm-name').innerText = dormName;
+    
+    // 4. แสดง Booking Modal
+    const bookingModal = document.getElementById('bookingModal');
+    bookingModal.classList.remove('hidden');
+    bookingModal.classList.add('flex');
+    
+    // ป้องกันการ Scroll (ถ้ายังไม่ได้ทำ)
     document.body.style.overflow = 'hidden';
 }
 
-// จังหวะที่ 2: กดปุ่ม X ที่หน้าคั่น เพื่อเข้าสู่ฟอร์มจองจริง
-function proceedToBookingForm() {
-    // 1. ปิดหน้าคั่น
-    const introModal = document.getElementById('bookingIntroModal');
-    if (introModal) {
-        introModal.classList.add('hidden');
-        introModal.classList.remove('flex');
-    }
-
-    // 2. เตรียมข้อมูลสำหรับหน้าฟอร์มจอง (bookingModal)
-    // ดึงชื่อหอพักจากหน้ารายละเอียดเก็บไว้แสดงในหน้าฟอร์ม
-    const dormName = document.querySelector('#publicDormContent h2')?.innerText || "หอพักที่เลือก";
-    
-    // ใส่ ID และชื่อหอในหน้าฟอร์ม
-    const idInput = document.getElementById('booking-dorm-id');
-    const nameDisplay = document.getElementById('booking-dorm-name');
-    
-    if (idInput) idInput.value = currentDormIdForBooking;
-    if (nameDisplay) nameDisplay.innerText = dormName;
-
-    // 3. แสดงหน้าฟอร์มจองจริง
-    const bookingModal = document.getElementById('bookingModal');
-    if (bookingModal) {
-        bookingModal.classList.remove('hidden');
-        bookingModal.classList.add('flex');
-    }
-}
-
-// ปิดฟอร์มจองแล้วย้อนกลับไปหน้าแรกสุด
+// ฟังก์ชันปิด Modal จอง
 function closeBookingModal() {
     const bookingModal = document.getElementById('bookingModal');
     bookingModal.classList.add('hidden');
     bookingModal.classList.remove('flex');
 
+    // เมื่อปิดหน้าจอง "ควรเปิดหน้ารายละเอียดหอพักกลับคืนมา" (ย้อนกลับ)
     const publicModal = document.getElementById('publicDormModal');
-    if (publicModal) publicModal.classList.remove('hidden');
-    // ถ้าอยากให้หลุดไปหน้าแรกเลย ไม่เอาหน้ารายละเอียดหอ ก็แค่ไม่ต้องเปิด publicModal ครับ
+    if (publicModal) {
+        publicModal.classList.remove('hidden');
+    }
 }
 
 // จัดการการส่งฟอร์ม (Submit)
@@ -696,4 +676,3 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchRecommendedDorms();
     getOrCreateVisitorId();
 });
-

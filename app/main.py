@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, Request, HTTPException, status, Response, Cookie, WebSocket, WebSocketDisconnect, UploadFile, File, Form, APIRouter, BackgroundTasks
+from fastapi import FastAPI, Depends, Request, HTTPException, status, Response, Cookie, WebSocket, WebSocketDisconnect, UploadFile, File, Form, APIRouter, BackgroundTasks, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse  # แยกมาไว้บรรทัดนี้
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select # เพิ่มตัวนี้
@@ -31,6 +31,8 @@ from datetime import datetime, timedelta
 from app.models.dormitory import Dormitory, DormViewLog
 from pydantic import BaseModel
 from app.schemas import ViewRecordRequest
+from configmail import conf  # <--- Import มาจากไฟล์ที่เราสร้าง
+from fastapi_mail import FastMail, MessageSchema
 
 
 # กำหนด Path สำหรับเก็บรูปภาพ
@@ -229,6 +231,17 @@ async def owner_notification_socket(websocket: WebSocket, rd = Depends(get_redis
         except:
             pass
 
+
+# ตัวอย่างฟังก์ชันส่งเมล
+async def send_status_email(email_to: str, subject: str, body: str):
+    message = MessageSchema(
+        subject=subject,
+        recipients=[email_to],
+        body=body,
+        subtype="html"
+    )
+    fm = FastMail(conf)  # ใช้ conf ที่ import มา
+    await fm.send_message(message)
 
 
 
@@ -775,9 +788,10 @@ async def get_pending_owners(
 @app.post("/api/admin/approve-owner/{owner_id}")
 async def approve_owner(
     owner_id: int,
+    background_tasks: BackgroundTasks, # เพิ่มตรงนี้
     db: AsyncSession = Depends(get_db),
     payload: dict = Depends(admin_only),
-    rd = Depends(get_redis) # เพิ่มการดึง Redis เข้ามา
+    rd = Depends(get_redis)
 ):
     result = await db.execute(select(Owner).where(Owner.id == owner_id))
     owner = result.scalar_one_or_none()
@@ -785,41 +799,43 @@ async def approve_owner(
     if not owner:
         raise HTTPException(status_code=404, detail="ไม่พบข้อมูลผู้ใช้งาน")
     
-    owner.is_approved = True  # เปลี่ยนค่าเป็น True
+    owner.is_approved = True
     await db.commit()
 
-    # --- 2. จุดสำคัญ: ล้าง Cache เพื่อให้การดึงข้อมูลครั้งต่อไปได้ค่าใหม่ล่าสุด ---
-    try:
-        # ลบ Cache รายชื่อเจ้าของทั้งหมด (ตรวจสอบชื่อ Key ให้ตรงกับใน API GET all-owners ของคุณ)
-        await rd.delete("admin:all_owners") 
-        # ถ้ามี Cache จำนวนรวม (Count) ก็ควรลบด้วยเช่นกัน
-        # await rd.delete("total_owners_count_cache") 
-        print("✅ ล้าง Cache admin:all_owners เรียบร้อย")
-    except Exception as e:
-        print(f"Redis Delete Cache Error: {e}")
+    # --- 1. ส่งอีเมลแจ้งเตือน (Background) ---
+    email_content = f"""
+    <h2>ยินดีด้วย! บัญชีของคุณได้รับการอนุมัติแล้ว</h2>
+    <p>สวัสดีคุณ {owner.first_name},</p>
+    <p>ขณะนี้คุณสามารถเข้าสู่ระบบเพื่อจัดการหอพัก <b>{owner.dorm_name}</b> ของคุณได้แล้ว</p>
+    <br>
+    <p>ทีมงาน RMUTI Dorm</p>
+    """
+    background_tasks.add_task(send_status_email, owner.email, "แจ้งผลการอนุมัติบัญชีเจ้าของหอพัก", email_content)
 
-    # --- 3. ส่งสัญญาณ Real-time ผ่าน WebSocket ---
+    # --- 2. ล้าง Cache Redis ---
+    try:
+        await rd.delete("admin:all_owners") 
+    except Exception as e:
+        print(f"Redis Cache Error: {e}")
+
+    # --- 3. WebSocket Notification ---
     try:
         notification_data = {
             "event": "owner_approved", 
-            "data": {
-                "id": owner.id,
-                "full_name": f"{owner.first_name} {owner.last_name}",
-                "message": f"อนุมัติเจ้าของหอพัก {owner.username} เรียบร้อยแล้ว"
-            }
+            "data": {"id": owner.id, "message": f"อนุมัติ {owner.username} แล้ว"}
         }
-        # Publish ไปที่ Channel เพื่อให้ WebSocket ส่งต่อให้ Admin
         await rd.publish("admin_notifications", json.dumps(notification_data))
     except Exception as e:
         print(f"Redis Publish Error: {e}")
-    # ---------------------------------------
     
-    return {"status": "success", "message": f"อนุมัติบัญชี {owner.username} เรียบร้อยแล้ว"}
+    return {"status": "success", "message": "อนุมัติและส่งเมลแจ้งเตือนเรียบร้อย"}
 
 # ลบคำขอ
 @app.delete("/api/admin/reject-owner/{owner_id}")
 async def reject_owner(
     owner_id: int, 
+    remark: str = Query(...), # รับหมายเหตุจาก Frontend
+    background_tasks: BackgroundTasks = BackgroundTasks(), # เพิ่มตรงนี้
     db: AsyncSession = Depends(get_db),
     payload: dict = Depends(admin_only)
 ):
@@ -828,10 +844,24 @@ async def reject_owner(
     
     if not owner:
         raise HTTPException(status_code=404, detail="ไม่พบข้อมูลผู้สมัคร")
+    
+    # เก็บข้อมูลไว้ก่อนลบ
+    target_email = owner.email
+    target_name = owner.first_name
+
+    # --- 1. ส่งเมลแจ้งเหตุผล (Background) ---
+    email_content = f"""
+    <h2>แจ้งผลการสมัครสมาชิก (ไม่ผ่านการอนุมัติ)</h2>
+    <p>สวัสดีคุณ {target_name},</p>
+    <p>ขออภัย บัญชีของคุณไม่ได้รับการอนุมัติในขณะนี้</p>
+    <p style="color: red;"><b>หมายเหตุจากเจ้าหน้าที่:</b> {remark}</p>
+    <p>หากคุณมีข้อสงสัย โปรดติดต่อฝ่ายสนับสนุนหรือลองสมัครใหม่อีกครั้ง</p>
+    """
+    background_tasks.add_task(send_status_email, target_email, "ผลการสมัครสมาชิกถูกปฏิเสธ", email_content)
         
     await db.delete(owner)
     await db.commit()
-    return {"status": "success", "message": "ลบคำขอเรียบร้อยแล้ว"}
+    return {"status": "success", "message": "ส่งเมลแจ้งเหตุผลและลบข้อมูลเรียบร้อยแล้ว"}
 
 
 # แสดงรายชื่อ owner ทั้งหมด

@@ -525,34 +525,45 @@
 
             try {
                 const response = await fetch(`/api/admin/approve-owner/${ownerId}`, { method: 'POST' });
-                const result = await response.json();
                 if (response.ok) {
-                    alert('อนุมัติเรียบร้อย!');
-                    loadPendingOwners(); // โหลดตารางใน Modal ใหม่
+                    alert('อนุมัติและส่งเมลแจ้งเตือนเรียบร้อย!');
+                    loadPendingOwners();
                 } else {
-                    alert('เกิดข้อผิดพลาด: ' + result.detail);
+                    const result = await response.json();
+                    alert('ผิดพลาด: ' + result.detail);
                 }
             } catch (error) {
-                alert('การเชื่อมต่อเซิร์ฟเวอร์ล้มเหลว');
+                alert('เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว');
             }
         }
 
         //ฟังก์ชั่นปฏิเสธ
         async function rejectOwner(owner_id) {
-            if (!confirm('ยืนยันที่จะ "ปฏิเสธ" และลบคำขอนี้? ข้อมูลจะถูกลบออกจากระบบทันที')) return;
+            // 1. ถามเหตุผล
+            const remark = prompt('ระบุเหตุผลที่ปฏิเสธ (เพื่อแจ้ง Owner ทางอีเมล):');
+            
+            // ถ้ากดยกเลิก หรือไม่พิมพ์อะไรเลย ให้หยุด
+            if (remark === null) return; 
+            if (remark.trim() === "") {
+                alert("ต้องระบุเหตุผลในการปฏิเสธด้วยครับ");
+                return;
+            }
+
+            if (!confirm('ยืนยันที่จะปฏิเสธและลบคำขอนี้? ข้อมูลจะถูกลบและเจ้าของจะได้รับเมลแจ้งเตือน')) return;
 
             try {
-                const response = await fetch(`/api/admin/reject-owner/${owner_id}`, {
+                // 2. ส่งไปที่ API พร้อม Query String (?remark=...)
+                const response = await fetch(`/api/admin/reject-owner/${owner_id}?remark=${encodeURIComponent(remark)}`, {
                     method: 'DELETE'
                 });
-                const result = await response.json();
 
                 if (response.ok) {
-                    // ไม่ต้องใช้ alert ให้รก ใช้ Toast หรือโหลดใหม่เลย
+                    alert('ปฏิเสธและส่งเมลแจ้งผลเรียบร้อย');
                     loadPendingOwners(); 
                     updatePendingCount();
                 } else {
-                    alert('เกิดข้อผิดพลาด: ' + (result.detail || 'ไม่สามารถลบได้'));
+                    const result = await response.json();
+                    alert('ผิดพลาด: ' + (result.detail || 'ไม่สามารถลบได้'));
                 }
             } catch (error) {
                 console.error('Error:', error);

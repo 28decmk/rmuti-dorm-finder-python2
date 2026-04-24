@@ -59,7 +59,7 @@ class Dormitory(Base):
     
     # เชื่อมโยงกับ Owner
     owner_id = Column(Integer, ForeignKey("owners.id"))
-    owner = relationship("Owner", back_populates="dorms")
+    owner = relationship("Owner", back_populates="dormitories")
     
     # เชื่อมโยงกับรูปภาพ
     images = relationship("DormImage", back_populates="dormitory", cascade="all, delete-orphan")

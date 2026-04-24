@@ -864,6 +864,76 @@ async def reject_owner(
     return {"status": "success", "message": "ส่งเมลแจ้งเหตุผลและลบข้อมูลเรียบร้อยแล้ว"}
 
 
+
+# API สำหรับแอดมินลบ Owner (เจ้าของหอพักที่เคยอนุมัติแล้ว)
+@app.delete("/api/admin/delete-owner/{owner_id}")
+async def admin_delete_owner(
+    owner_id: int,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    payload: dict = Depends(admin_only),
+    rd = Depends(get_redis)
+):
+    # 1. ค้นหา Owner พร้อมกับข้อมูลหอพักของเขา (ถ้ามี)
+    # เราใช้ selectinload เพื่อดึงข้อมูลหอพักมาจัดการลบรูปภาพด้วย
+    result = await db.execute(
+        select(Owner)
+        .where(Owner.id == owner_id)
+        .options(selectinload(Owner.dormitories).selectinload(models.Dormitory.images))
+    )
+    owner = result.scalar_one_or_none()
+
+    if not owner:
+        raise HTTPException(status_code=404, detail="ไม่พบข้อมูลเจ้าของหอพักที่ต้องการลบ")
+
+    owner_email = owner.email
+    owner_name = owner.first_name
+    username = owner.username
+
+    try:
+        # 2. จัดการลบรูปภาพของหอพักทั้งหมดที่เจ้าของคนนี้ครอบครอง (เพื่อไม่ให้ขยะเต็ม Server)
+        for dorm in owner.dormitories:
+            for img in dorm.images:
+                file_path = os.path.join(UPLOAD_DIR, img.filename)
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            
+            # ลบ Cache ของหอพักแต่ละแห่ง
+            await rd.delete(f"dorm_detail:{dorm.id}")
+
+        # 3. ลบ Owner จาก Database (เนื่องจากตั้ง Cascade ไว้ หอพักจะถูกลบอัตโนมัติ)
+        await db.delete(owner)
+        await db.commit()
+
+        # 4. ส่งอีเมลแจ้งเตือนให้เขาทราบ
+        email_content = f"""
+        <h2>แจ้งการยกเลิกบัญชีสมาชิก</h2>
+        <p>สวัสดีคุณ {owner_name},</p>
+        <p>บัญชีผู้ใช้งาน <b>{username}</b> ของคุณถูกลบโดยผู้ดูแลระบบ</p>
+        <p>ข้อมูลหอพักและรูปภาพทั้งหมดของคุณถูกนำออกจากระบบเรียบร้อยแล้ว</p>
+        <p>หากคุณคิดว่านี่คือข้อผิดพลาด โปรดติดต่อผู้ดูแลระบบ</p>
+        """
+        background_tasks.add_task(send_status_email, owner_email, "บัญชีของคุณถูกลบโดยผู้ดูแลระบบ", email_content)
+
+        # 5. ล้าง Cache ส่วนกลาง
+        await rd.delete("admin:all_owners")
+        await rd.delete("admin_stats")
+        await rd.delete("public_verified_dorms") # หอพักหายไป หน้าแรกต้องอัปเดต
+
+        # 6. แจ้งเตือนแอดมินคนอื่นๆ ผ่าน WebSocket
+        await rd.publish("admin_notifications", json.dumps({
+            "event": "owner_deleted",
+            "data": {"message": f"ลบบัญชีคุณ {username} เรียบร้อยแล้ว", "type": "danger"}
+        }))
+
+    except Exception as e:
+        await db.rollback()
+        print(f"Delete Owner Error: {e}")
+        raise HTTPException(status_code=500, detail="เกิดข้อผิดพลาดในการลบข้อมูล")
+
+    return {"status": "success", "message": f"ลบเจ้าของหอพัก {username} และข้อมูลที่เกี่ยวข้องเรียบร้อยแล้ว"}
+
+
 # แสดงรายชื่อ owner ทั้งหมด
 @app.get("/api/admin/all-owners")
 async def get_all_owners(

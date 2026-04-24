@@ -31,3 +31,5 @@ class Owner(Base):
     
     created_at = Column(DateTime, default=datetime.utcnow)
     dorms = relationship("Dormitory", back_populates="owner")
+
+    dormitories = relationship("Dormitory", back_populates="owner", cascade="all, delete-orphan")

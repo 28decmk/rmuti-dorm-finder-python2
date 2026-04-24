@@ -18,6 +18,17 @@
             animation: shimmer 1.5s infinite;
         }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* แถม: เนื่องจาก Navbar ของคุณเป็นแบบ sticky (ติดขอบบน) 
+        เราควรเผื่อระยะด้านบนไว้หน่อยเพื่อไม่ให้ Navbar ไปทับหัวข้อเวลาเลื่อนลงมา */
+        #popular-dorms {
+            scroll-margin-top: 100px; /* ปรับค่าตามความสูงของ Navbar คุณ */
+        }
+
     </style>
 </head>
 <body class="bg-[#f8fafc] text-slate-900 antialiased">
@@ -34,7 +45,7 @@
             </div>
             <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
                 <a href="#" class="hover:text-[#03a9f4] transition-colors">หน้าแรก</a>
-                <a href="#" class="hover:text-[#03a9f4] transition-colors">หอพักยอดนิยม</a>
+                <a href="#popular-dorms" class="hover:text-[#03a9f4] transition-colors">หอพักยอดนิยม</a>
                 <button onclick="toggleModal()" class="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-slate-900 text-white hover:bg-[#003399] transition-all shadow-sm active:scale-95 text-sm font-medium">
                     สำหรับเจ้าของหอพัก
                 </button>
@@ -112,7 +123,7 @@
         </div>
     </header>
 
-    <main class="container mx-auto py-20 px-6">
+    <main id="popular-dorms" class="container mx-auto py-20 px-6">
         <div class="flex justify-between items-end mb-12">
             <div>
                 <h2 class="text-3xl font-bold text-slate-900">หอพักแนะนำ</h2>

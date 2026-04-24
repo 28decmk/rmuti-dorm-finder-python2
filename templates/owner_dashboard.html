@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Dashboard | RMUTI Dorm</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-[#fdfdfd] min-h-screen">
+
+    <nav class="bg-indigo-900 px-6 py-4 flex justify-between items-center text-white">
+        <div class="flex items-center gap-3">
+            <h1 class="text-xl font-black italic tracking-tighter">OWNER <span class="text-indigo-400 italic font-normal underline decoration-2 underline-offset-4">PORTAL</span></h1>
+        </div>
+        <button onclick="logout()" class="text-sm font-bold flex items-center gap-2 hover:text-indigo-300 transition-colors">
+            ออกจากระบบ
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </button>
+    </nav>
+
+    <main class="max-w-6xl mx-auto p-6 md:p-10">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+            <div>
+                <h2 class="text-3xl font-black text-slate-900">
+                    ยินดีต้อนรับ, <span id="display-dorm-name">กำลังโหลด...</span>
+                </h2>
+                <p class="text-slate-500 mt-1 font-medium">
+                    คุณ <span id="display-owner-name">...</span> จัดการห้องว่างและอัปเดตข้อมูลของคุณที่นี่
+                </p>
+            </div>
+            <button onclick="openAddDormModal()" class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95">
+                + เพิ่มหอพักใหม่
+            </button>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 space-y-6" id="my-dorms-container">
+                <div class="animate-pulse bg-white p-8 rounded-[2.5rem] border border-slate-100 h-64 flex items-center justify-center">
+                    <p class="text-slate-400 font-bold">กำลังโหลดข้อมูลหอพักของคุณ...</p>
+                </div>
+            </div>
+
+            <div class="bg-indigo-600 rounded-[2.5rem] p-8 text-white shadow-xl shadow-indigo-100 h-fit">
+                <div class="flex justify-between items-center mb-6">
+                    <h4 class="text-xl font-bold">สถิติการเข้าชม</h4>
+                    
+                    <select id="dormSelector" class="bg-indigo-500 text-white text-xs border-none rounded-lg px-2 py-1 focus:ring-2 focus:ring-white/50 outline-none">
+                        <option value="all">หอพักทั้งหมด</option>
+                        </select>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="flex justify-between items-end border-b border-indigo-500 pb-4">
+                        <span class="text-indigo-200 text-sm">ยอดชมวันนี้</span>
+                        <span id="statToday" class="text-3xl font-bold">0</span>
+                    </div>
+                    <div class="flex justify-between items-end border-b border-indigo-500 pb-4">
+                        <span class="text-indigo-200 text-sm">ยอดชมทั้งหมด</span>
+                        <span id="statTotal" class="text-3xl font-bold">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="addDormModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center">
+            <div onclick="closeAddDormModal()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+
+            <div class="inline-block w-full max-w-4xl p-8 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-[2.5rem] relative">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-slate-800">ลงทะเบียนหอพักใหม่</h3>
+                    <p class="text-sm text-slate-400">* จำเป็นต้องกรอก</p>
+                </div>
+
+                <form id="addDormForm" class="space-y-8">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+                        <div class="space-y-4">
+                            <h4 class="font-bold text-indigo-600 text-sm uppercase tracking-wider">1. ข้อมูลทั่วไป</h4>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-500 uppercase mb-1">ชื่อหอพัก *</label>
+                                <input type="text" id="dorm-name" required class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-500 uppercase mb-1">ประเภท</label>
+                                    <select id="dorm-type" class="w-full px-3 py-3 bg-slate-50 border-none rounded-2xl outline-none text-sm">
+                                        <option value="หอพักรวม">หอพักรวม</option>
+                                        <option value="หอพักชาย">หอพักชาย</option>
+                                        <option value="หอพักหญิง">หอพักหญิง</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-500 uppercase mb-1">ประเภทห้อง (เช่น เตียงคู่)</label>
+                                    <input type="text" id="room-type" placeholder="เตียงเดี่ยว/คู่" class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-500 uppercase mb-1">ระยะทางไป มทร. (กม./เมตร)</label>
+                                    <input type="text" id="distance-to-rmuti" placeholder="เช่น 500 เมตร" class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none text-sm">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-500 uppercase mb-1">ห้องว่าง</label>
+                                    <input type="number" id="vacancy-count" value="0" min="0" class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-500 uppercase mb-1">ราคาเริ่มต้น (บาท) *</label>
+                                <input type="number" id="price-start" required class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-500 uppercase mb-1">กรอกลิ้งค์ที่อยู่ (ลิ้งค์บน Google Map)</label>
+                                <input type="url" id="google-map" placeholder="https://goo.gl/maps/..." class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none text-xs">
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <h4 class="font-bold text-indigo-600 text-sm uppercase tracking-wider">2. การติดต่อและสถานที่</h4>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-500 uppercase mb-1">เบอร์โทรศัพท์ *</label>
+                                <input type="text" id="contact-number" required class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-500 uppercase mb-1">Line ID</label>
+                                <input type="text" id="line-id" class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-500 uppercase mb-1">ที่อยู่หอพัก</label>
+                                <textarea id="address" rows="2" class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none text-sm"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-500 uppercase mb-1">คำอธิบายเพิ่มเติม</label>
+                                <textarea id="description" rows="2" placeholder="เช่น ใกล้ประตู 1, มีเซเว่นหน้าปากซอย" class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none text-sm"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <h4 class="font-bold text-indigo-600 text-sm uppercase tracking-wider">3. รูปภาพ (สูงสุด 5 รูป)</h4>
+
+                            <div id="drop-zone" class="relative group border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-[2rem] p-4 transition-all bg-slate-50/50 text-center cursor-pointer">
+                                <input type="file" id="dorm-images" multiple accept="image/jpeg,image/png,image/webp" class="hidden">
+                                <div onclick="document.getElementById('dorm-images').click()">
+                                    <svg class="w-8 h-8 mx-auto text-slate-300 group-hover:text-indigo-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    <p class="text-[10px] font-bold text-slate-400 group-hover:text-indigo-600 uppercase">คลิกเพื่ออัปโหลด</p>
+                                    <p class="text-[9px] text-slate-400 mt-1">JPG, PNG, WEBP (Max 5MB)</p>
+                                </div>
+                            </div>
+
+                            <div id="image-preview" class="grid grid-cols-5 gap-2 mt-2">
+                            </div>
+
+                            <h4 class="font-bold text-indigo-600 text-[10px] uppercase tracking-wider pt-2">สิ่งอำนวยความสะดวก</h4>
+                            <div class="grid grid-cols-2 gap-2 mt-2">
+                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-wifi" class="w-4 h-4 accent-indigo-600"> <span class="text-[10px] font-bold text-slate-600">Wi-Fi</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-air" class="w-4 h-4 accent-indigo-600"> <span class="text-[10px] font-bold text-slate-600">แอร์</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-parking" class="w-4 h-4 accent-indigo-600"> <span class="text-[10px] font-bold text-slate-600">ที่จอดรถ</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-laundry" class="w-4 h-4 accent-indigo-600"> <span class="text-[10px] font-bold text-slate-600">เครื่องซักผ้า</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="is-pet" class="w-4 h-4 accent-indigo-600"> <span class="text-[10px] font-bold text-slate-600">เลี้ยงสัตว์</span>
+                                </label>
+                            </div>
+
+                            <h4 class="font-bold text-indigo-600 text-[10px] uppercase tracking-wider pt-4">ความปลอดภัยและส่วนกลาง</h4>
+                            <div class="grid grid-cols-2 gap-2 mt-2">
+                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-keycard" class="w-4 h-4 accent-indigo-600"> 
+                                    <span class="text-[10px] font-bold text-slate-600">คีย์การ์ด</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-cctv" class="w-4 h-4 accent-indigo-600"> 
+                                    <span class="text-[10px] font-bold text-slate-600">กล้องวงจรปิด</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-security" class="w-4 h-4 accent-indigo-600"> 
+                                    <span class="text-[10px] font-bold text-slate-600">รปภ.</span>
+                                </label>
+
+                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-water-heater" class="w-4 h-4 accent-indigo-600"> 
+                                    <span class="text-[10px] font-bold text-slate-600">เครื่องทำน้ำอุ่น</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-fridge" class="w-4 h-4 accent-indigo-600"> 
+                                    <span class="text-[10px] font-bold text-slate-600">ตู้เย็น</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-furniture" class="w-4 h-4 accent-indigo-600"> 
+                                    <span class="text-[10px] font-bold text-slate-600">เฟอร์นิเจอร์</span>
+                                </label>
+
+                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-elevator" class="w-4 h-4 accent-indigo-600"> 
+                                    <span class="text-[10px] font-bold text-slate-600">ลิฟต์</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-fitness" class="w-4 h-4 accent-indigo-600"> 
+                                    <span class="text-[10px] font-bold text-slate-600">ฟิตเนส</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-drinking-water" class="w-4 h-4 accent-indigo-600"> 
+                                    <span class="text-[10px] font-bold text-slate-600">ตู้น้ำหยอดเหรียญ</span>
+                                </label>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4 pt-6 border-t border-slate-50">
+                        <button type="button" onclick="submitAddDorm(event)" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all">ยืนยันการเพิ่มหอพัก</button>
+                        <button type="button" onclick="closeAddDormModal()" class="w-32 bg-slate-100 text-slate-500 py-4 rounded-2xl font-bold hover:bg-slate-200 transition-all">ยกเลิก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+
+    <section class="mt-16 mb-20">
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h3 class="text-2xl font-black text-slate-900 flex items-center gap-3">
+                    <span class="relative flex h-3 w-3">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                    </span>
+                    รายการจองที่รอการจัดการ
+                </h3>
+                <p class="text-slate-500 text-sm font-medium mt-1">ตรวจสอบและยืนยันสถานะการเข้าพักของนักศึกษา</p>
+            </div>
+            <div class="flex items-center gap-2 bg-white border border-slate-100 p-1.5 rounded-2xl shadow-sm">
+                <span id="booking-count-badge" class="bg-indigo-600 text-white px-4 py-1.5 rounded-xl text-xs font-black tracking-wider uppercase">0 รายการ</span>
+            </div>
+        </div>
+
+        <div id="booking-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="col-span-full py-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-100">
+                <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 00-2 2z"/></svg>
+                </div>
+                <p class="text-slate-400 font-bold text-lg">ไม่มีรายการจองใหม่ในขณะนี้</p>
+                <p class="text-slate-300 text-sm">เมื่อมีการจอง ข้อมูลจะปรากฏขึ้นที่นี่อัตโนมัติ</p>
+            </div>
+        </div>
+    </section>
+
+
+    <script>
+        // ป้องกันการกดย้อนกลับ (Back Button) โดยการดันสถานะปัจจุบันเข้า History ตลอดเวลา
+        history.pushState(null, null, window.location.href);
+        window.onpopstate = function() {
+            history.go(1); // ถ้ากดย้อนกลับ ให้มันกระเด้งไปข้างหน้า 1 จังหวะ (ก็คืออยู่ที่เดิม)
+        };
+
+        function logout() {
+            // 1. ล้างข้อมูลใน LocalStorage (ฝั่ง Client)
+            localStorage.removeItem('user_role');
+
+            // 2. แจ้งผู้ใช้ (Optional)
+            alert('กำลังออกจากระบบ...');
+
+            // 3. วิ่งไปที่ API Logout เพื่อให้ Server ลบ Cookie และลบ Redis
+            window.location.href = '/api/auth/logout';
+        }
+    </script>
+
+    <script src="/static/js/owner.js" defer></script>
+
+</body>
+
+</html>

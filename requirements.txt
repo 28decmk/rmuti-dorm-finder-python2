@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+sqlalchemy>=2.0
+asyncpg
+redis>=4.2.0
+pydantic-settings
+python-dotenv
+jinja2
+python-multipart
+Pydantic
+passlib[bcrypt]
+bcrypt==3.2.0
+python-jose[cryptography]
+email-validator
+fastapi-limiter==0.1.5
+tenacity
+fastapi-mail

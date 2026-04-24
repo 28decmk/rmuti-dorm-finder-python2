@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | RMUTI Dorm</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .modal-active { overflow: hidden; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+    <nav class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4">
+        <div class="flex justify-between items-center text-slate-900">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
+                    <span class="text-white font-bold text-xl">R</span>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold leading-none">Admin <span class="text-indigo-600">Central</span></h1>
+                    <p class="text-xs text-slate-500 mt-1">ระบบจัดการหอพักส่วนกลาง</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="logout()" class="bg-red-50 text-red-600 p-2.5 rounded-xl hover:bg-red-100 transition-all active:scale-95">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="p-6 max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10 text-slate-900">
+            <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+                <p class="text-slate-500 text-sm font-medium">หอพักที่อนุมัติแล้ว</p>
+                <h3 id="verified-count" class="text-3xl font-extrabold mt-1 text-indigo-600">0</h3>
+            </div>
+            <button onclick="openApproveModal()" class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:border-indigo-300 transition-all text-left group">
+                <p class="text-slate-500 text-sm font-medium">รอการอนุมัติ</p>
+                <div class="flex items-center justify-between">
+                    <h3 id="pending-count" class="text-3xl font-extrabold text-amber-500 mt-1">0</h3>
+                    <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full group-hover:bg-indigo-600 group-hover:text-white transition-colors">ดูคำขอ &rarr;</span>
+                </div>
+            </button>
+            <button onclick="openOwnersModal()" class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:border-indigo-300 transition-all text-left group">
+                <p class="text-slate-500 text-sm font-medium">เจ้าของหอพัก</p>
+                <div class="flex items-center justify-between">
+                    <h3 id="total-owners-count" class="text-3xl font-extrabold mt-1 text-slate-900">0</h3>
+                    <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full group-hover:bg-indigo-600 group-hover:text-white transition-colors">ดูทั้งหมด &rarr;</span>
+                </div>
+            </button>
+            <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+                <p class="text-slate-500 text-sm font-medium">รายงานปัญหา</p>
+                <h3 class="text-3xl font-extrabold text-red-500 mt-1">2</h3>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden text-slate-900">
+
+            <div class="p-8">
+                <div class="flex justify-between items-center mb-10">
+                    <h2 class="text-3xl font-black text-slate-900">รายการหอพักที่รอการอนุมัติ</h2>
+                    <span id="pending-badge" class="bg-amber-100 text-amber-600 px-4 py-1 rounded-full text-sm font-bold">0 รายการ</span>
+                </div>
+
+                <div id="pending-dorm-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                    </div>
+            </div>
+
+            <div class="p-8 border-b border-slate-50">
+                <h2 class="text-xl font-bold italic">ภาพรวมหอพักที่อนุมัติแล้ว</h2>
+            </div>
+
+            <div id="dorm-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                    </div>
+
+            <div class="p-20 text-center text-slate-400">
+                <p>เลือกหัวข้อด้านบนเพื่อจัดการข้อมูล</p>
+            </div>
+        </div>
+    </main>
+
+    <div id="approveModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div onclick="closeApproveModal()" class="fixed inset-0 transition-opacity bg-slate-900/60 backdrop-blur-sm"></div>
+            
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+            
+            <div class="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-[2.5rem] shadow-2xl sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+                <div class="px-8 py-6 bg-white border-b border-slate-100 flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-slate-800">คำขอลงทะเบียนใหม่</h3>
+                    <button onclick="closeApproveModal()" class="text-slate-400 hover:text-slate-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <div class="max-h-[60vh] overflow-y-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-50 sticky top-0">
+                            <tr>
+                                <th class="px-8 py-4 text-xs font-bold text-slate-400 uppercase">เจ้าของ / หอพัก</th>
+                                <th class="px-8 py-4 text-xs font-bold text-slate-400 uppercase">เบอร์โทรศัพท์</th>
+                                <th class="px-8 py-4 text-xs font-bold text-slate-400 uppercase text-right">การจัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal-pending-list" class="divide-y divide-slate-100">
+                            </tbody>
+                    </table>
+                    <div id="empty-state" class="hidden py-20 text-center text-slate-400">
+                        ไม่มีคำขอที่รอการอนุมัติ
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="ownersModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div onclick="closeOwnersModal()" class="fixed inset-0 transition-opacity bg-slate-900/60 backdrop-blur-sm"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+            <div class="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-[2.5rem] shadow-2xl sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full">
+                <div class="px-8 py-6 bg-white border-b border-slate-100 flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-slate-800">รายชื่อเจ้าของหอพักทั้งหมด</h3>
+                    <button onclick="closeOwnersModal()" class="text-slate-400 hover:text-slate-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="max-h-[70vh] overflow-y-auto p-4">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-50 sticky top-0">
+                            <tr>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">ชื่อ-นามสกุล</th>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">ชื่อหอพัก</th>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">ติดต่อ</th>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">สถานะ</th>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-center">แก้ไข</th>
+                            </tr>
+                        </thead>
+                        <tbody id="all-owners-list" class="divide-y divide-slate-100 text-slate-700">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="editOwnerModal" class="hidden fixed inset-0 z-[60] overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div onclick="closeEditModal()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm"></div>
+            <div class="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8">
+                <h3 class="text-xl font-bold text-slate-800 mb-6">แก้ไขข้อมูลเจ้าของหอพัก</h3>
+                <form id="editOwnerForm" class="space-y-4">
+                    <input type="hidden" id="edit-id">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">ชื่อ - นามสกุล</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="edit-fname" class="w-full px-4 py-2 border rounded-xl" placeholder="ชื่อ">
+                            <input type="text" id="edit-lname" class="w-full px-4 py-2 border rounded-xl" placeholder="นามสกุล">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">ชื่อหอพัก</label>
+                        <input type="text" id="edit-dorm" class="w-full px-4 py-2 border rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">เบอร์โทรศัพท์</label>
+                        <input type="text" id="edit-phone" class="w-full px-4 py-2 border rounded-xl">
+                    </div>
+                    <div class="flex items-center gap-2 py-2">
+                        <input type="checkbox" id="edit-active" class="w-4 h-4 accent-indigo-600">
+                        <label for="edit-active" class="text-sm font-medium text-slate-700">เปิดใช้งานบัญชี (Active)</label>
+                    </div>
+                    <div class="flex gap-3 mt-6">
+                        <button type="button" onclick="saveOwnerChanges()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all">บันทึกข้อมูล</button>
+                        <button type="button" onclick="closeEditModal()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition-all">ยกเลิก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="dormDetailModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 py-10">
+            <div onclick="closeDormModal()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+            <div class="bg-white rounded-[2.5rem] w-full max-w-5xl overflow-hidden shadow-2xl relative z-10 transition-all transform">
+                <div class="grid grid-cols-1 md:grid-cols-2">
+                    <div class="relative bg-slate-100 h-[400px] md:h-auto group/slider">
+                        <div id="modal-images" class="h-full flex overflow-x-hidden scroll-smooth snap-x snap-mandatory">
+                            </div>
+
+                        <div class="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-4 opacity-0 group-hover/slider:opacity-100 transition-opacity pointer-events-none">
+                            <button onclick="scrollModalImage('left')" class="p-3 rounded-full bg-white/80 backdrop-blur shadow-lg text-slate-800 hover:bg-white transition-all pointer-events-auto">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                            </button>
+                            <button onclick="scrollModalImage('right')" class="p-3 rounded-full bg-white/80 backdrop-blur shadow-lg text-slate-800 hover:bg-white transition-all pointer-events-auto">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            </button>
+                        </div>
+
+                        <div id="modal-map-link" class="absolute bottom-6 left-6 z-10"></div>
+                    </div>
+
+                    <div class="p-10 max-h-[85vh] overflow-y-auto custom-scrollbar">
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <span id="modal-dorm-type" class="text-indigo-600 text-[10px] font-black uppercase tracking-[0.2em]">ประเภทหอพัก</span>
+                                <h2 id="modal-title" class="text-3xl font-black text-slate-900 mt-1">ชื่อหอพัก</h2>
+                            </div>
+                            <button onclick="closeDormModal()" class="p-2 bg-slate-50 hover:bg-red-50 hover:text-red-500 rounded-2xl transition-all">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+
+                        <div class="flex items-center gap-4 p-4 bg-indigo-50/50 rounded-3xl mb-8">
+                            <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-bold text-xl">
+                                <span id="owner-initial">O</span>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">ผู้ลงทะเบียน (Owner)</p>
+                                <p id="modal-owner-name" class="font-bold text-slate-800">ชื่อเจ้าของ</p>
+                                <p id="modal-created-at" class="text-[10px] text-slate-400">วันที่: -</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-6 mb-8">
+                            <div>
+                                <p class="text-[10px] text-slate-400 font-black uppercase mb-1">ระยะทาง</p>
+                                <p id="modal-distance" class="text-sm font-bold text-slate-700">ห่างจาก มทร. -</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-slate-400 font-black uppercase mb-1">ประเภทห้อง</p>
+                                <p id="modal-room-type" class="text-sm font-bold text-slate-700">-</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4 text-slate-600 text-sm">
+                            <p class="flex items-center gap-2">📍 <span id="modal-address">ที่อยู่</span></p>
+                            <p class="flex items-center gap-2">💰 ราคา <span id="modal-price" class="text-indigo-600 font-black text-lg"></span> บาท/เดือน</p>
+                            <p class="flex items-center gap-2">🛏️ สถานะ: <span id="modal-vacancy" class="font-bold"></span></p>
+                            <p class="flex items-center gap-2">📞 <span id="modal-contact"></span> | Line: <span id="modal-line"></span></p>
+                            
+                            <div class="pt-4">
+                                <h4 class="font-bold text-slate-900 uppercase text-[10px] tracking-widest mb-3">สิ่งอำนวยความสะดวกที่แจ้งไว้</h4>
+                                <div id="modal-amenities" class="grid grid-cols-2 gap-y-2 gap-x-4"></div>
+                            </div>
+
+                            <div class="pt-4">
+                                <h4 class="font-bold text-slate-900 uppercase text-[10px] tracking-widest mb-2">คำอธิบายเพิ่มเติม</h4>
+                                <p class="p-4 bg-slate-50 rounded-2xl italic text-slate-500" id="modal-description"></p>
+                            </div>
+                        </div>
+
+                        <div id="modal-footer" class="mt-10 flex gap-4">
+                            </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="lightboxModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/95 backdrop-blur-xl transition-all duration-300">
+        <button onclick="closeLightbox()" class="absolute top-6 right-6 p-3 text-white/50 hover:text-white transition-colors z-50">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+        
+        <button onclick="changeLightboxImage(-1)" class="absolute left-6 p-4 text-white/30 hover:text-white transition-all">
+            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+
+        <img id="lightbox-img" src="" class="max-w-[90vw] max-h-[85vh] object-contain rounded-xl shadow-2xl transition-all duration-500 scale-95">
+
+        <button onclick="changeLightboxImage(1)" class="absolute right-6 p-4 text-white/30 hover:text-white transition-all">
+            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
+
+        <div id="lightbox-counter" class="absolute bottom-10 text-white/60 font-medium tracking-widest">1 / 5</div>
+    </div>
+
+    
+    <div id="editDormModal" class="fixed inset-0 z-[60] hidden overflow-y-auto bg-slate-900/60 backdrop-blur-sm">
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative w-full max-w-4xl rounded-[2.5rem] bg-white shadow-2xl transition-all">
+                
+                <div class="flex items-center justify-between border-b border-slate-100 p-8">
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-900">แก้ไขข้อมูลหอพัก (โหมดแอดมิน)</h2>
+                        <p class="text-sm text-slate-500">การแก้ไขนี้จะส่งผลทับข้อมูลในระบบทันที</p>
+                    </div>
+                    <button onclick="document.getElementById('editDormModal').classList.add('hidden')" class="rounded-2xl p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-600">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <form id="editDormForm" class="p-8">
+                    <input type="hidden" id="edit_dorm_id" name="dorm_id">
+                    
+                    <div class="grid grid-cols-1 gap-8 md:grid-cols-2">
+                        
+                        <div class="space-y-4">
+                            <h3 class="text-sm font-bold uppercase tracking-widest text-indigo-600">ข้อมูลทั่วไป</h3>
+                            
+                            <div>
+                                <label class="mb-1 block text-sm font-bold text-slate-700">ชื่อหอพัก</label>
+                                <input type="text" id="edit_name" name="name" required class="w-full rounded-2xl border-slate-200 bg-slate-50 p-3 focus:border-indigo-500 focus:ring-indigo-500">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="mb-1 block text-sm font-bold text-slate-700">ประเภทหอพัก</label>
+                                    <select id="edit_dorm_type" name="dorm_type" class="w-full rounded-2xl border-slate-200 bg-slate-50 p-3">
+                                        <option value="หอพักรวม">หอพักรวม</option>
+                                        <option value="หอพักชาย">หอพักชาย</option>
+                                        <option value="หอพักหญิง">หอพักหญิง</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="mb-1 block text-sm font-bold text-slate-700">รูปแบบห้อง (เช่น เตียงเดี่ยว)</label>
+                                    <input type="text" id="edit_room_type" name="room_type" class="w-full rounded-2xl border-slate-200 bg-slate-50 p-3">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="mb-1 block text-sm font-bold text-slate-700">ราคาเริ่มต้น (฿)</label>
+                                    <input type="number" id="edit_price_start" name="price_start" class="w-full rounded-2xl border-slate-200 bg-slate-50 p-3">
+                                </div>
+                                <div>
+                                    <label class="mb-1 block text-sm font-bold text-slate-700">จำนวนห้องว่าง</label>
+                                    <input type="number" id="edit_vacancy_count" name="vacancy_count" class="w-full rounded-2xl border-slate-200 bg-slate-50 p-3">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="mb-1 block text-sm font-bold text-slate-700">ระยะทาง (กม./ม.)</label>
+                                    <input type="text" id="edit_distance" name="distance_to_rmuti" class="w-full rounded-2xl border-slate-200 bg-slate-50 p-3">
+                                </div>
+                                <div>
+                                    <label class="mb-1 block text-sm font-bold text-slate-700">Line ID</label>
+                                    <input type="text" id="edit_line_id" name="line_id" class="w-full rounded-2xl border-slate-200 bg-slate-50 p-3">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="mb-1 block text-sm font-bold text-slate-700">เบอร์โทรศัพท์ติดต่อ</label>
+                                <input type="text" id="edit_contact_number" name="contact_number" class="w-full rounded-2xl border-slate-200 bg-slate-50 p-3">
+                            </div>
+
+                            <div>
+                                <label class="mb-1 block text-sm font-bold text-slate-700">ที่อยู่หอพัก</label>
+                                <input type="text" id="edit_address" name="address" class="w-full rounded-2xl border-slate-200 bg-slate-50 p-3">
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="mb-4 text-sm font-bold uppercase tracking-widest text-indigo-600">สิ่งอำนวยความสะดวก</h3>
+                            <div class="grid grid-cols-2 gap-x-2 gap-y-3 rounded-[2rem] bg-slate-50 p-5 border border-slate-100">
+                                <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer hover:text-indigo-600">
+                                    <input type="checkbox" id="edit_has_wifi" name="has_wifi" class="rounded text-indigo-600"> Wi-Fi
+                                </label>
+                                <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer hover:text-indigo-600">
+                                    <input type="checkbox" id="edit_has_air_conditioner" name="has_air_conditioner" class="rounded text-indigo-600"> แอร์
+                                </label>
+                                <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer hover:text-indigo-600">
+                                    <input type="checkbox" id="edit_has_parking" name="has_parking" class="rounded text-indigo-600"> ที่จอดรถ
+                                </label>
+                                <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer hover:text-indigo-600">
+                                    <input type="checkbox" id="edit_has_elevator" name="has_elevator" class="rounded text-indigo-600"> ลิฟต์
+                                </label>
+                                <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer hover:text-indigo-600">
+                                    <input type="checkbox" id="edit_has_keycard" name="has_keycard" class="rounded text-indigo-600"> คีย์การ์ด
+                                </label>
+                                <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer hover:text-indigo-600">
+                                    <input type="checkbox" id="edit_has_cctv" name="has_cctv" class="rounded text-indigo-600"> CCTV
+                                </label>
+                                <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer hover:text-indigo-600">
+                                    <input type="checkbox" id="edit_has_security_guard" name="has_security_guard" class="rounded text-indigo-600"> รปภ.
+                                </label>
+                                <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer hover:text-indigo-600">
+                                    <input type="checkbox" id="edit_is_pet_friendly" name="is_pet_friendly" class="rounded text-indigo-600"> สัตว์เลี้ยง
+                                </label>
+                                <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer hover:text-indigo-600">
+                                    <input type="checkbox" id="edit_has_water_heater" name="has_water_heater" class="rounded text-indigo-600"> น้ำอุ่น
+                                </label>
+                                <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer hover:text-indigo-600">
+                                    <input type="checkbox" id="edit_has_furniture" name="has_furniture" class="rounded text-indigo-600"> เฟอร์นิเจอร์
+                                </label>
+                                <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer hover:text-indigo-600">
+                                    <input type="checkbox" id="edit_has_fitness" name="has_fitness" class="rounded text-indigo-600"> ฟิตเนส
+                                </label>
+                                <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer hover:text-indigo-600">
+                                    <input type="checkbox" id="edit_has_drinking_water" name="has_drinking_water" class="rounded text-indigo-600"> ตู้น้ำ
+                                </label>
+                            </div>
+
+                            <div class="mt-4">
+                                <label class="mb-1 block text-sm font-bold text-slate-700">รายละเอียดหอพัก (Description)</label>
+                                <textarea id="edit_description" name="description" rows="3" class="w-full rounded-2xl border-slate-200 bg-slate-50 p-3 focus:ring-indigo-500" placeholder="อธิบายจุดเด่นของหอพัก..."></textarea>
+                            </div>
+
+                            <div class="mt-4">
+                                <label class="mb-1 block text-sm font-bold text-slate-700">ลิงก์ Google Maps</label>
+                                <input type="text" id="edit_google_map" name="google_map_link" class="w-full rounded-2xl border-slate-200 bg-slate-50 p-3" placeholder="https://goo.gl/maps/...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 border-t border-slate-100 pt-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <label class="text-sm font-bold text-slate-700">จัดการรูปภาพ</label>
+                            <label class="cursor-pointer inline-flex items-center gap-2 rounded-xl bg-indigo-50 px-4 py-2 text-sm font-bold text-indigo-600 hover:bg-indigo-100 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                เพิ่มรูปภาพใหม่
+                                <input type="file" id="edit_images_input" name="images" multiple class="hidden" accept="image/*" onchange="handleNewImagesPreview(this)">
+                            </label>
+                        </div>
+
+                        <p class="text-xs text-slate-500 mb-2">รูปภาพปัจจุบัน (คลิกที่กากบาทเพื่อลบ)</p>
+                        <div id="edit_image_previews" class="flex flex-wrap gap-4 mb-6">
+                            </div>
+
+                        <p class="text-xs text-slate-500 mb-2">รูปภาพที่จะเพิ่มใหม่</p>
+                        <div id="new_image_previews" class="flex flex-wrap gap-4">
+                            </div>
+                    </div>
+                </form>
+
+                <div class="flex items-center justify-end gap-4 border-t border-slate-100 p-8 bg-slate-50/50 rounded-b-[2.5rem]">
+                    <button onclick="document.getElementById('editDormModal').classList.add('hidden')" class="px-6 py-3 font-bold text-slate-500 hover:text-slate-700">
+                        ยกเลิก
+                    </button>
+                    <button onclick="saveAdminEdit()" class="flex items-center gap-2 rounded-2xl bg-indigo-600 px-8 py-3 font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        บันทึกข้อมูลทันที
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+
+        let currentImages = []; // เก็บรายการรูปภาพของหอพักที่กำลังดูอยู่
+        let currentImageIndex = 0;
+        let currentViewingDormId = null;
+        let imagesToDelete = []; // เก็บ ID รูปภาพที่จะลบ
+
+        // --- ส่วนการจัดการ Modal และดึงข้อมูล ---
+
+        // เพิ่มเข้าไปใน <script> ของ admin_dashboard.html
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/admin/notifications`;
+        const socket = new WebSocket(wsUrl);
+
+        // ดึงจำนวนรายการรออนุมัติมาโชว์ที่ Card
+        async function updatePendingCount() {
+            try {
+                const response = await fetch('/api/admin/pending-owners');
+                const owners = await response.json();
+                document.getElementById('pending-count').innerText = owners.length;
+            } catch (error) { console.error('Error:', error); }
+        }
+
+        async function openApproveModal() {
+            document.getElementById('approveModal').classList.remove('hidden');
+            document.body.classList.add('modal-active');
+            await loadPendingOwners();
+        }
+
+        function closeApproveModal() {
+            document.getElementById('approveModal').classList.add('hidden');
+            document.body.classList.remove('modal-active');
+            updatePendingCount(); // อัปเดตตัวเลขหน้าหลัก
+        }
+
+        async function loadPendingOwners() {
+            const listBody = document.getElementById('modal-pending-list');
+            const emptyState = document.getElementById('empty-state');
+            
+            try {
+                const response = await fetch('/api/admin/pending-owners');
+                const owners = await response.json();
+                
+                listBody.innerHTML = '';
+                if (owners.length === 0) {
+                    emptyState.classList.remove('hidden');
+                } else {
+                    emptyState.classList.add('hidden');
+                    owners.forEach(owner => {
+                        listBody.innerHTML += `
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="px-8 py-5">
+                                    <div class="font-bold text-slate-700">${owner.first_name} ${owner.last_name}</div>
+                                    <div class="text-xs text-indigo-500 font-medium">หอพัก: ${owner.dorm_name}</div>
+                                </td>
+                                <td class="px-8 py-5 text-sm text-slate-500">${owner.phone}</td>
+                                <td class="px-8 py-5 text-right">
+                                    <div class="flex justify-end gap-2">
+                                        <button onclick="approveOwner(${owner.id})" class="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-all active:scale-95 shadow-sm">
+                                            อนุมัติ
+                                        </button>
+                                        <button onclick="rejectOwner(${owner.id})" class="px-4 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-xl hover:bg-red-100 transition-all active:scale-95 border border-red-100">
+                                            ปฏิเสธ
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (error) {
+                alert('ไม่สามารถโหลดข้อมูลได้');
+            }
+        }
+
+        // ฟังก์ชั่นอนุมัติ
+        async function approveOwner(ownerId) {
+            if(!confirm('ยืนยันการอนุมัติเจ้าของหอพักรายนี้?')) return;
+
+            try {
+                const response = await fetch(`/api/admin/approve-owner/${ownerId}`, { method: 'POST' });
+                if (response.ok) {
+                    alert('อนุมัติและส่งเมลแจ้งเตือนเรียบร้อย!');
+                    loadPendingOwners();
+                } else {
+                    const result = await response.json();
+                    alert('ผิดพลาด: ' + result.detail);
+                }
+            } catch (error) {
+                alert('เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว');
+            }
+        }
+
+        //ฟังก์ชั่นปฏิเสธ
+        async function rejectOwner(owner_id) {
+            // 1. ถามเหตุผล
+            const remark = prompt('ระบุเหตุผลที่ปฏิเสธ (เพื่อแจ้ง Owner ทางอีเมล):');
+            
+            // ถ้ากดยกเลิก หรือไม่พิมพ์อะไรเลย ให้หยุด
+            if (remark === null) return; 
+            if (remark.trim() === "") {
+                alert("ต้องระบุเหตุผลในการปฏิเสธด้วยครับ");
+                return;
+            }
+
+            if (!confirm('ยืนยันที่จะปฏิเสธและลบคำขอนี้? ข้อมูลจะถูกลบและเจ้าของจะได้รับเมลแจ้งเตือน')) return;
+
+            try {
+                // 2. ส่งไปที่ API พร้อม Query String (?remark=...)
+                const response = await fetch(`/api/admin/reject-owner/${owner_id}?remark=${encodeURIComponent(remark)}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    alert('ปฏิเสธและส่งเมลแจ้งผลเรียบร้อย');
+                    loadPendingOwners(); 
+                    updatePendingCount();
+                } else {
+                    const result = await response.json();
+                    alert('ผิดพลาด: ' + (result.detail || 'ไม่สามารถลบได้'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('การเชื่อมต่อล้มเหลว');
+            }
+        }
+
+
+        // ฟังก์ชันเปิด Modal และโหลดข้อมูล
+        async function openOwnersModal() {
+            document.getElementById('ownersModal').classList.remove('hidden');
+            document.body.classList.add('modal-active');
+            
+            const listBody = document.getElementById('all-owners-list');
+            listBody.innerHTML = '<tr><td colspan="4" class="py-10 text-center text-slate-400 animate-pulse">กำลังโหลดข้อมูลจาก Cache...</td></tr>';
+
+            try {
+                const response = await fetch('/api/admin/all-owners');
+                const owners = await response.json();
+                
+                listBody.innerHTML = '';
+                owners.forEach(owner => {
+                    listBody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 text-sm font-semibold">${owner.full_name}</td>
+                            <td class="px-6 py-4 text-sm text-indigo-600 font-medium">${owner.dorm_name}</td>
+                            <td class="px-6 py-4 text-sm text-slate-500">
+                                <div>📞 ${owner.phone}</div>
+                                <div class="text-xs">✉️ ${owner.email}</div>
+                            </td>
+                            <td class="px-6 py-4 text-sm">
+                                <span class="px-2 py-1 ${owner.is_active ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'} rounded-lg text-xs font-bold">
+                                    ${owner.is_active ? 'ปกติ' : 'ถูกระงับ'}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <button onclick="editOwner(${owner.id})" class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all active:scale-90">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                // อัปเดตตัวเลขหน้าหลักด้วย
+                document.getElementById('total-owners-count').innerText = owners.length;
+            } catch (error) {
+                listBody.innerHTML = '<tr><td colspan="4" class="py-10 text-center text-red-500">ไม่สามารถดึงข้อมูลได้</td></tr>';
+            }
+        }
+
+        function closeOwnersModal() {
+            document.getElementById('ownersModal').classList.add('hidden');
+            document.body.classList.remove('modal-active');
+        }
+
+
+        // 1. ฟังก์ชันสำหรับโหลดข้อมูลเข้าตาราง (แยกออกมา)
+        async function loadOwnersList() {
+            const listBody = document.getElementById('all-owners-list');
+            if (!listBody) return;
+
+            try {
+                const response = await fetch('/api/admin/all-owners');
+                const owners = await response.json();
+                
+                console.log("🔍 ตรวจสอบข้อมูลจาก API:", owners); // <--- เช็คดูใน Console ว่าข้อมูลมาไหม?
+
+                listBody.innerHTML = '';
+                
+                if (owners.length === 0) {
+                    listBody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-slate-400">ไม่พบรายชื่อเจ้าของหอพัก</td></tr>';
+                    return;
+                }
+
+                owners.forEach(owner => {
+                    const name = owner.full_name || `${owner.first_name || ''} ${owner.last_name || ''}`;
+                    
+                    listBody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 text-sm font-semibold">${name}</td>
+                            <td class="px-6 py-4 text-sm text-indigo-600 font-medium">${owner.dorm_name || 'ไม่ระบุ'}</td>
+                            <td class="px-6 py-4 text-sm text-slate-500">
+                                <div>📞 ${owner.phone || '-'}</div>
+                                <div class="text-xs">✉️ ${owner.email || '-'}</div>
+                            </td>
+                            <td class="px-6 py-4 text-sm">
+                                <span class="px-2 py-1 ${owner.is_active ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'} rounded-lg text-xs font-bold">
+                                    ${owner.is_active ? 'ปกติ' : 'ถูกระงับ'}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <div class="flex justify-center gap-2">
+                                    <button onclick="editOwner(${owner.id})" class="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-all" title="แก้ไข">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    </button>
+                                    
+                                    <button onclick="deleteOwner(${owner.id}, '${name}')" class="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all" title="ลบสมาชิก">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>`;
+                });
+
+                // อัปเดตตัวเลข
+                const countElem = document.getElementById('total-owners-count');
+                if (countElem) countElem.innerText = owners.length;
+
+            } catch (error) {
+                console.error('❌ Fetch Error:', error);
+                listBody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
+            }
+        }
+
+        // 2. ฟังก์ชันกดปุ่มเพื่อเปิด Modal
+        function openOwnersModal() {
+            document.getElementById('ownersModal').classList.remove('hidden');
+            document.body.classList.add('modal-active');
+            loadOwnersList(); // เรียกตัวโหลดข้อมูล
+        }
+
+        // เพิ่มการอัปเดตตัวเลขยอดรวมตอนโหลดหน้าเว็บด้วย
+        async function updateTotalOwnersCount() {
+            try {
+                const response = await fetch('/api/admin/all-owners');
+                const owners = await response.json();
+                document.getElementById('total-owners-count').innerText = owners.length;
+            } catch (e) {}
+        }
+        updateTotalOwnersCount();
+
+        // ฟังก์ชั่นแก้ไขข้อมูล owner
+        async function editOwner(ownerId) {
+            // ดึงข้อมูลจาก List ปัจจุบันมาแสดงก่อน (เพื่อความเร็ว)
+            // หรือจะดึงจาก API โดยตรงก็ได้
+            const response = await fetch('/api/admin/all-owners');
+            const owners = await response.json();
+            const owner = owners.find(o => o.id === ownerId);
+
+            if (owner) {
+                document.getElementById('edit-id').value = owner.id;
+                document.getElementById('edit-fname').value = owner.full_name.split(' ')[0];
+                document.getElementById('edit-lname').value = owner.full_name.split(' ')[1] || '';
+                document.getElementById('edit-dorm').value = owner.dorm_name;
+                document.getElementById('edit-phone').value = owner.phone;
+                document.getElementById('edit-active').checked = owner.is_active;
+
+                document.getElementById('editOwnerModal').classList.remove('hidden');
+            }
+        }
+
+        function closeEditModal() {
+            document.getElementById('editOwnerModal').classList.add('hidden');
+        }
+
+        // 2. ฟังก์ชันส่งข้อมูลไปบันทึก
+        async function saveOwnerChanges() {
+            const ownerId = document.getElementById('edit-id').value;
+            const updateData = {
+                first_name: document.getElementById('edit-fname').value,
+                last_name: document.getElementById('edit-lname').value,
+                dorm_name: document.getElementById('edit-dorm').value,
+                phone: document.getElementById('edit-phone').value,
+                is_active: document.getElementById('edit-active').checked
+            };
+
+            try {
+                const response = await fetch(`/api/admin/update-owner/${ownerId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updateData)
+                });
+
+                if (response.ok) {
+                    alert('✅ บันทึกข้อมูลและอัปเดต Cache เรียบร้อย!');
+                    closeEditModal();
+                    openOwnersModal(); // โหลดตารางใหม่ (ซึ่งคราวนี้จะได้ข้อมูลใหม่เพราะ Cache ถูกลบแล้ว)
+                } else {
+                    alert('❌ เกิดข้อผิดพลาดในการบันทึก');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+
+        // ฟังก์ชันสำหรับลบ Owner
+        async function deleteOwner(ownerId, ownerName) {
+            // 1. ถามเพื่อยืนยันการลบ (ป้องกันการกดพลาด)
+            const confirmDelete = await Swal.fire({
+                title: 'ยืนยันการลบสมาชิก?',
+                text: `คุณกำลังจะลบบัญชีของคุณ "${ownerName}" ข้อมูลหอพักและรูปภาพทั้งหมดจะถูกลบถาวรและไม่สามารถกู้คืนได้!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444', // สีแดง
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'ใช่, ลบเลย!',
+                cancelButtonText: 'ยกเลิก'
+            });
+
+            if (confirmDelete.isConfirmed) {
+                try {
+                    // แสดงสถานะกำลังโหลด
+                    Swal.fire({
+                        title: 'กำลังลบ...',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
+                    // 2. ส่งคำขอไปยัง API
+                    const response = await fetch(`/api/admin/delete-owner/${ownerId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                            // ถ้าคุณใช้ Token ให้ใส่ที่นี่ เช่น 'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        // 3. แจ้งเตือนเมื่อลบสำเร็จ
+                        await Swal.fire({
+                            icon: 'success',
+                            title: 'ลบสำเร็จ!',
+                            text: result.message,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+
+                        // 4. รีโหลดตารางใหม่ เพื่ออัปเดตข้อมูลหน้าจอ
+                        loadOwnersList(); 
+                        // ถ้ามีฟังก์ชันอัปเดต Stats แอดมิน ให้เรียกที่นี่ด้วย
+                        if (typeof loadAdminStats === 'function') loadAdminStats();
+
+                    } else {
+                        throw new Error(result.detail || 'เกิดข้อผิดพลาดในการลบ');
+                    }
+
+                } catch (error) {
+                    console.error('❌ Delete Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: error.message
+                    });
+                }
+            }
+        }
+
+
+        // โหลดตัวเลขเริ่มต้น
+        updatePendingCount();
+
+        // --- ระบบความปลอดภัย ---
+        history.pushState(null, null, window.location.href);
+        window.onpopstate = function () { history.go(1); };
+
+        socket.onopen = () => console.log("✅ เชื่อมต่อระบบแจ้งเตือนเรียบร้อย");
+
+        socket.onmessage = function(event) {
+            try {
+                const response = JSON.parse(event.data);
+                console.log("📩 Real-time Update:", response.event, response.data);
+                
+                // --- 1. กำหนดเหตุการณ์ที่ต้องสั่ง Refresh ข้อมูลบนหน้าจอ ---
+                const refreshEvents = [
+                    "new_registration",     // สมัครเจ้าของหอใหม่
+                    "new_dorm_added",      // เพิ่มหอใหม่ครั้งแรก
+                    "dorm_updated",        // 🔥 สำคัญ: มีการส่งคำขอแก้ไขข้อมูล (Draft)
+                    "dorm_deleted_by_owner", // เจ้าของลบหอพัก
+                    "stats_updated",       // มีการอัปเดตสถิติทั่วไป
+                    "owner_approved",      // อนุมัติเจ้าของหอ
+                    "dorm_verified",       // อนุมัติหอพัก
+                    "dorm_rejected"        // ปฏิเสธหอพัก
+                ];
+
+                if (refreshEvents.includes(response.event)) {
+                    // โหลดสถิติใหม่ (ตัวเลขบน Card)
+                    if (typeof loadDashboardStats === "function") loadDashboardStats();
+                    
+                    // โหลดรายการหอพักใหม่ (เพื่อให้ Badge 'รออนุมัติการแก้ไข' ปรากฏทันที)
+                    if (typeof loadPendingDormitories === "function") loadPendingDormitories();
+                    
+                    // ถ้ามีตารางรวมหอพักทั้งหมด
+                    if (typeof loadAllDormitories === "function") loadAllDormitories();
+                    
+                    // อัปเดตตัวเลข Badge แจ้งเตือน (ถ้ามีฟังก์ชันแยก)
+                    if (typeof updatePendingCount === "function") updatePendingCount();
+                }
+
+                // --- 2. จัดการ Toast Notification ตามประเภทเหตุการณ์ ---
+                
+                // เคส: ขอแก้ไขข้อมูล (Draft)
+                if (response.event === "dorm_updated") {
+                    showToast("🔄 คำขอแก้ไขข้อมูล", response.data.message || "มีหอพักส่งรายการแก้ไขข้อมูลใหม่", "info");
+                }
+                
+                // เคส: หอพักใหม่
+                else if (response.event === "new_dorm_added" || response.event === "new_registration") {
+                    showToast("✨ รายการใหม่!", response.data.message, "success");
+                }
+
+                // เคส: หอพักถูกลบ (ป้องกัน Admin กดดูข้อมูลที่ไม่มีอยู่แล้ว)
+                else if (response.event === "dorm_deleted_by_owner") {
+                    showToast("⚠️ หอพักถูกลบ!", response.data.message, "warning");
+                    
+                    // ถ้ากำลังเปิด Modal ของหอนี้อยู่ ให้ปิดทันที
+                    const modal = document.getElementById('dormDetailModal');
+                    if (modal && !modal.classList.contains('hidden')) {
+                        if (typeof currentViewingDormId !== 'undefined' && currentViewingDormId == response.data.id) {
+                            closeDormModal();
+                            showToast("ระบบปิดหน้าต่าง", "หอพักนี้ถูกลบโดยเจ้าของแล้ว", "info");
+                        }
+                    }
+                }
+
+                // เคส: การดำเนินการสำเร็จ (อนุมัติ/ปฏิเสธ)
+                else if (response.event === "dorm_verified" || response.event === "dorm_rejected") {
+                    const isVerified = response.event === "dorm_verified";
+                    showToast(isVerified ? "✅ อนุมัติสำเร็จ" : "❌ ปฏิเสธสำเร็จ", response.data.message, isVerified ? "success" : "error");
+                }
+
+            } catch (e) {
+                console.error("❌ WebSocket JSON Error:", e);
+            }
+        };
+
+
+        // ปรับปรุงฟังก์ชัน Toast ให้รับค่าได้หลากหลายขึ้น
+        function showToast(title, message) {
+            const toast = document.createElement('div');
+            toast.className = "fixed bottom-5 right-5 bg-indigo-600 text-white px-6 py-4 rounded-2xl shadow-2xl z-[100] transition-all duration-500 transform translate-y-20 opacity-0";
+            toast.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">🏨</span>
+                    <div>
+                        <p class="font-bold text-sm">${title}</p>
+                        <p class="text-xs opacity-80">${message}</p>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            
+            // Animation ขาเข้า
+            setTimeout(() => {
+                toast.classList.remove('translate-y-20', 'opacity-0');
+            }, 100);
+
+            // หายไปเอง
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 500);
+            }, 5000);
+        }
+
+        // ป้องกัน Socket หลุด (Auto Reconnect)
+        socket.onclose = () => {
+            console.log("❌ การเชื่อมต่อหลุด กำลังเชื่อมต่อใหม่...");
+            setTimeout(() => { window.location.reload(); }, 3000); 
+        };
+
+
+        async function loadAllDormitories() {
+            try {
+                const response = await fetch('/api/admin/dorms');
+                if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลหอพักได้');
+                
+                const allDorms = await response.json();
+                
+                // 🔥 คัดกรองเอาเฉพาะหอพักที่ "อนุมัติแล้ว" (Verified) เท่านั้น
+                const verifiedDorms = allDorms.filter(dorm => dorm.is_verified === true);
+                
+                const container = document.getElementById('dorm-grid-container');
+                container.innerHTML = ''; 
+
+                if (verifiedDorms.length === 0) {
+                    container.innerHTML = `<div class="col-span-full text-center py-20 text-slate-400 bg-slate-50 rounded-[2.5rem] border border-dashed">ยังไม่มีหอพักที่ผ่านการอนุมัติในระบบ</div>`;
+                    return;
+                }
+
+                verifiedDorms.forEach(dorm => {
+                    const imageUrl = dorm.images && dorm.images.length > 0 
+                        ? `/static/uploads/dorms/${dorm.images[0].filename}` 
+                        : 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800';
+
+                    // --- 🚨 ส่วนที่เพิ่ม: สร้าง HTML สำหรับยอดผู้เข้าชม 🚨 ---
+                    const viewCountHTML = `
+                        <div class="flex items-center gap-1.5 text-slate-400 text-xs font-medium bg-slate-50 px-2.5 py-1 rounded-lg">
+                            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            ${(dorm.total_views || 0).toLocaleString()} ครั้ง
+                        </div>
+                    `;
+
+                    const cardHTML = `
+                        <div class="group bg-white rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-100 transition-all duration-500 overflow-hidden hover:-translate-y-2">
+                            <div class="relative overflow-hidden">
+                                <img class="h-64 w-full object-cover transform group-hover:scale-110 transition-transform duration-700" 
+                                    src="${imageUrl}" 
+                                    alt="${dorm.name}">
+
+                                    <div class="absolute top-4 right-4 flex gap-2">
+                                        <button onclick="openEditDormModal(${dorm.id})" class="bg-white/90 p-2 rounded-full text-slate-600 hover:text-indigo-600 shadow-sm transition-all">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                        </button>
+
+                                        <button onclick="deleteDormByAdmin(${dorm.id}, '${dorm.name}')" class="bg-white/90 p-2 rounded-full text-slate-600 hover:text-red-600 shadow-sm transition-all" title="ลบหอพัก">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </button>
+                                    </div>
+                                
+                                <div class="absolute top-4 left-4">
+                                    <span class="bg-indigo-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg">
+                                        ${dorm.vacancy_count > 0 ? `ว่าง ${dorm.vacancy_count} ห้อง` : 'เต็มแล้ว'}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="p-8">
+                                <div class="flex justify-between items-start mb-3">
+                                    <div class="flex items-center gap-1 text-amber-400">
+                                        <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                        <span class="text-slate-500 text-xs font-bold uppercase tracking-tighter">${dorm.dorm_type}</span>
+                                    </div>
+                                    ${viewCountHTML}
+                                </div>
+                                
+                                <h3 class="font-bold text-2xl text-slate-900 group-hover:text-indigo-600 transition-colors mb-2 truncate">${dorm.name}</h3>
+                                
+                                <div class="flex items-center gap-2 text-slate-500 text-sm mb-6">
+                                    <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                    ห่างจาก มหาวิทยาลัย ${dorm.distance_to_rmuti || '-'}
+                                </div>
+                                
+                                <div class="pt-6 border-t border-slate-50 flex justify-between items-center">
+                                    <div>
+                                        <p class="text-[10px] text-slate-400 uppercase font-black tracking-[0.1em] mb-1">เริ่มต้นที่</p>
+                                        <span class="text-2xl font-black text-slate-900">฿${dorm.price_start.toLocaleString()}<span class="text-xs font-normal text-slate-400">/เดือน</span></span>
+                                    </div>
+                                    <button onclick="viewDormDetail(${dorm.id})" class="inline-flex items-center justify-center h-12 px-6 rounded-2xl bg-slate-50 text-slate-900 font-bold hover:bg-indigo-600 hover:text-white transition-all duration-300">
+                                        ดูรายละเอียด
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.insertAdjacentHTML('beforeend', cardHTML);
+                });
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+
+        async function viewDormDetail(dormId) {
+            try {
+                const response = await fetch(`/api/admin/dorms/${dormId}`);
+                const dorm = await response.json();
+                const draft = dorm.draft; // ดึงข้อมูลร่างแก้ไขมา (ถ้ามี)
+
+                // --- ฟังก์ชันช่วยแสดงผลแบบเปรียบเทียบ ---
+                const compare = (currentVal, draftVal, formatter = (v) => v) => {
+                    // ถ้าไม่มี draft หรือ ค่าเท่ากัน ให้โชว์ค่าปัจจุบันปกติ
+                    if (!draft || draftVal === undefined || draftVal === null || currentVal === draftVal) {
+                        return formatter(currentVal || '-');
+                    }
+                    // ถ้าค่าต่างกัน ให้โชว์ทั้งเก่า (ขีดฆ่า) และใหม่
+                    return `
+                        <div class="flex flex-col">
+                            <span class="text-red-500 line-through text-xs">${formatter(currentVal)}</span>
+                            <span class="text-green-600 font-bold">${formatter(draftVal)}</span>
+                        </div>
+                    `;
+                };
+
+                currentViewingDormId = dorm.id;
+
+                // 1. จัดการรูปภาพ (เปรียบเทียบรูปเก่า/ใหม่/ลบ)
+                const imgContainer = document.getElementById('modal-images');
+                let imageList = [];
+                
+                // รูปปัจจุบัน (เช็คว่าอันไหนถูกสั่งลบ)
+                const deleteIds = draft ? JSON.parse(draft.delete_image_ids || "[]") : [];
+                let currentImgHtml = dorm.images.map((img, index) => {
+                    const isDeleted = deleteIds.includes(img.id);
+                    const src = `/static/uploads/dorms/${img.filename}`;
+                    imageList.push(src); // เก็บไว้ให้ Lightbox
+                    return `
+                        <div class="relative w-full h-full flex-shrink-0 snap-center">
+                            <img src="${src}" onclick="openLightbox(${index})" 
+                                class="w-full h-full object-cover cursor-zoom-in ${isDeleted ? 'grayscale blur-[1px] opacity-50' : ''}">
+                            ${isDeleted ? '<span class="absolute inset-0 flex items-center justify-center text-red-600 font-black bg-white/20">จะถูกลบ</span>' : ''}
+                        </div>
+                    `;
+                }).join('');
+
+                // รูปใหม่ (ถ้ามี)
+                let newImgHtml = "";
+                if (draft && draft.new_images_json) {
+                    const newImgs = JSON.parse(draft.new_images_json);
+                    newImgHtml = newImgs.map((filename) => {
+                        const src = `/static/uploads/dorms/${filename}`;
+                        imageList.push(src);
+                        return `
+                            <div class="relative w-full h-full flex-shrink-0 snap-center">
+                                <img src="${src}" class="w-full h-full object-cover border-4 border-green-500">
+                                <span class="absolute top-2 right-2 bg-green-500 text-white text-[10px] px-2 py-1 rounded-full font-bold shadow-lg">ใหม่</span>
+                            </div>
+                        `;
+                    }).join('');
+                }
+                
+                currentImages = imageList.length > 0 ? imageList : ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800'];
+                imgContainer.innerHTML = (currentImgHtml + newImgHtml) || '<div class="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400">ไม่มีรูปภาพ</div>';
+
+                // 2. ข้อมูลเจ้าของ
+                if (dorm.owner) {
+                    document.getElementById('modal-owner-name').innerText = `${dorm.owner.first_name} ${dorm.owner.last_name}`;
+                    document.getElementById('owner-initial').innerText = dorm.owner.first_name.charAt(0).toUpperCase();
+                }
+
+                const date = new Date(dorm.created_at);
+                document.getElementById('modal-created-at').innerText = `เมื่อ: ${date.toLocaleDateString('th-TH')} น.`;
+
+                // 3. ข้อมูลทั่วไป (ใช้ compare ทั้งหมด)
+                document.getElementById('modal-title').innerHTML = compare(dorm.name, draft?.name);
+                document.getElementById('modal-dorm-type').innerHTML = compare(dorm.dorm_type, draft?.dorm_type);
+                document.getElementById('modal-address').innerHTML = compare(dorm.address, draft?.address);
+                document.getElementById('modal-price').innerHTML = compare(dorm.price_start, draft?.price_start, (v) => v.toLocaleString());
+                document.getElementById('modal-distance').innerHTML = compare(dorm.distance_to_rmuti, draft?.distance_to_rmuti, (v) => `ห่างจาก มทร. ${v}`);
+                document.getElementById('modal-room-type').innerHTML = compare(dorm.room_type, draft?.room_type);
+                document.getElementById('modal-vacancy').innerHTML = compare(dorm.vacancy_count, draft?.vacancy_count, (v) => v > 0 ? `ว่าง ${v} ห้อง` : 'เต็มแล้ว');
+                document.getElementById('modal-contact').innerHTML = compare(dorm.contact_number, draft?.contact_number);
+                document.getElementById('modal-line').innerHTML = compare(dorm.line_id, draft?.line_id);
+                document.getElementById('modal-description').innerHTML = compare(dorm.description, draft?.description);
+
+                // 4. แผนที่
+                const mapLink = draft?.google_map_link || dorm.google_map_link;
+                const mapContainer = document.getElementById('modal-map-link');
+                mapContainer.innerHTML = mapLink ? `
+                    <a href="${mapLink}" target="_blank" class="flex items-center gap-2 bg-white/90 backdrop-blur px-6 py-3 rounded-2xl shadow-xl text-indigo-600 font-bold hover:bg-indigo-600 hover:text-white transition-all">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>
+                        ดูบน Google Maps ${draft?.google_map_link && draft.google_map_link !== dorm.google_map_link ? '(ลิงก์ใหม่)' : ''}
+                    </a>
+                ` : '';
+
+                // 5. Amenities (เปรียบเทียบสถานะ)
+                const amenitiesList = {
+                    has_wifi: 'Wi-Fi ฟรี', has_air_conditioner: 'แอร์', has_parking: 'ที่จอดรถ',
+                    has_laundry: 'เครื่องซักผ้า', is_pet_friendly: 'เลี้ยงสัตว์',
+                    has_water_heater: 'น้ำอุ่น', has_elevator: 'ลิฟต์',
+                    has_furniture: 'เฟอร์ฯ', has_refrigerator: 'ตู้เย็น',
+                    has_keycard: 'คีย์การ์ด', has_cctv: 'กล้อง',
+                    has_security_guard: 'รปภ.', has_fitness: 'ฟิตเนส',
+                    has_drinking_water: 'ตู้น้ำ'
+                };
+                const amenContainer = document.getElementById('modal-amenities');
+                amenContainer.innerHTML = Object.keys(amenitiesList).map(key => {
+                    const current = dorm[key];
+                    const next = draft ? draft[key] : current;
+                    let statusClass = "text-slate-400 opacity-40";
+                    let icon = "○";
+
+                    if (current && next) { statusClass = "text-slate-600"; icon = "✔"; }
+                    else if (!current && next) { statusClass = "text-green-600 font-bold bg-green-50 rounded px-1"; icon = "✚"; }
+                    else if (current && !next) { statusClass = "text-red-500 line-through opacity-70"; icon = "✘"; }
+
+                    return `<div class="flex items-center gap-1 text-[13px] ${statusClass}"><span>${icon}</span> ${amenitiesList[key]}</div>`;
+                }).join('');
+
+                // 6. ปุ่ม Footer
+                const footer = document.getElementById('modal-footer');
+                if (dorm.verification_status === 'pending' || dorm.verification_status === 'pending_update') {
+                    footer.innerHTML = `
+                        <button onclick="approveDorm(${dorm.id})" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-100 flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                            ${dorm.verification_status === 'pending_update' ? 'อนุมัติการแก้ไข' : 'อนุมัติหอพัก'}
+                        </button>
+                        <button onclick="rejectDorm(${dorm.id})" class="flex-1 bg-red-100 text-red-600 py-4 rounded-2xl font-bold hover:bg-red-200 transition-all">
+                            ไม่ผ่านการอนุมัติ
+                        </button>
+                    `;
+                } else {
+                    footer.innerHTML = `<div class="w-full text-center py-4 bg-gray-50 rounded-2xl text-gray-500 font-bold border">ตรวจสอบแล้ว</div>`;
+                }
+
+                document.getElementById('dormDetailModal').classList.remove('hidden');
+            } catch (error) {
+                console.error(error);
+                alert("เกิดข้อผิดพลาดในการโหลดข้อมูล");
+            }
+        }
+
+
+        // ฟังก์ชันเลื่อนรูปใน Modal รายละเอียด
+        function scrollModalImage(direction) {
+            const container = document.getElementById('modal-images');
+            const scrollAmount = container.clientWidth;
+            if (direction === 'left') {
+                container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+            } else {
+                container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+            }
+        }
+
+        // --- ฟังก์ชัน Lightbox ---
+        function openLightbox(index) {
+            currentImageIndex = index;
+            updateLightbox();
+            const modal = document.getElementById('lightboxModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => document.getElementById('lightbox-img').classList.remove('scale-95'), 10);
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox-img').classList.add('scale-95');
+            setTimeout(() => document.getElementById('lightboxModal').classList.add('hidden'), 200);
+        }
+
+        function changeLightboxImage(step) {
+            currentImageIndex = (currentImageIndex + step + currentImages.length) % currentImages.length;
+            
+            // ใส่ Animation เล็กน้อยตอนเปลี่ยนรูป
+            const img = document.getElementById('lightbox-img');
+            img.style.opacity = '0';
+            setTimeout(() => {
+                updateLightbox();
+                img.style.opacity = '1';
+            }, 150);
+        }
+
+        function updateLightbox() {
+            document.getElementById('lightbox-img').src = currentImages[currentImageIndex];
+            document.getElementById('lightbox-counter').innerText = `${currentImageIndex + 1} / ${currentImages.length}`;
+        }
+
+        // รองรับการกดปุ่มบนคีย์บอร์ด
+        document.addEventListener('keydown', (e) => {
+            const lightbox = document.getElementById('lightboxModal');
+            if (lightbox.classList.contains('hidden')) return;
+            
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowLeft') changeLightboxImage(-1);
+            if (e.key === 'ArrowRight') changeLightboxImage(1);
+        });
+
+        async function approveDorm(dormId) {
+            // ปรับข้อความ Confirm ให้ยืดหยุ่นตามสถานะ (เลือกใช้ข้อความกลางๆ)
+            if (!confirm("ยืนยันการอนุมัติข้อมูลหอพักนี้เพื่อให้แสดงผลบนเว็บไซต์ใช่หรือไม่?")) return;
+
+            // เพิ่ม Loading State (ถ้ามีปุ่มให้กด) เพื่อป้องกันการกดเบิ้ล
+            const approveBtn = event?.target; 
+            if (approveBtn) approveBtn.disabled = true;
+
+            try {
+                const response = await fetch(`/api/admin/dorms/${dormId}/verify`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // 1. ปิด Modal รายละเอียด
+                    const modal = document.getElementById('dormDetailModal');
+                    if (modal) modal.classList.add('hidden');
+
+                    // 2. โหลดรายการหอพักใหม่ทั้งหมด
+                    // แนะนำให้โหลดทั้ง loadPendingDormitories (ส่วนที่รอ) และ loadDorms (ส่วนที่อนุมัติแล้ว)
+                    if (typeof loadPendingDormitories === 'function') await loadPendingDormitories();
+                    if (typeof loadDorms === 'function') await loadDorms(); 
+                    
+                    // 3. ใช้ Toast หรือ Alert แจ้งเตือน (ใช้ข้อความจาก Backend)
+                    alert(result.message || "ดำเนินการอนุมัติเรียบร้อยแล้ว!");
+                } else {
+                    alert(result.detail || "ไม่สามารถอนุมัติได้ กรุณาลองใหม่");
+                }
+            } catch (error) {
+                console.error("Error verifying dorm:", error);
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+            } finally {
+                if (approveBtn) approveBtn.disabled = false;
+            }
+        }
+
+        function closeDormModal() {
+            document.getElementById('dormDetailModal').classList.add('hidden');
+        }
+
+
+        async function rejectDorm(dormId) {
+            const reason = prompt("ระบุเหตุผลที่ไม่ผ่านการอนุมัติ:", "ข้อมูลหรือรูปภาพไม่ถูกต้อง");
+            
+            if (reason === null) return; // กดยกเลิก Prompt
+
+            try {
+                const response = await fetch(`/api/admin/dorms/${dormId}/reject`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason: reason })
+                });
+
+                if (response.ok) {
+                    showToast("ดำเนินการเรียบร้อย", "ปฏิเสธการอนุมัติหอพักแล้ว", "info");
+                    document.getElementById('dormDetailModal').classList.add('hidden');
+                    
+                    // 🔥 เพิ่มบรรทัดนี้ครับ เพื่อให้หน้า Pending อัปเดตทันที
+                    if (typeof loadPendingDormitories === 'function') loadPendingDormitories();
+
+                    // รีโหลดข้อมูลสถิติและตาราง
+                    if (typeof loadDashboardStats === 'function') loadDashboardStats();
+                    if (typeof loadAllDormitories === 'function') loadAllDormitories();
+                } else {
+                    alert("ไม่สามารถดำเนินการได้");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+            }
+        }
+
+
+        // เรียกใช้ครั้งแรกเมื่อโหลดหน้า
+        document.addEventListener('DOMContentLoaded', loadAllDormitories);
+
+
+        async function loadDashboardStats() {
+            try {
+                const response = await fetch('/api/admin/stats');
+                if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลสถิติได้');
+                
+                const stats = await response.json();
+
+                // 1. อัปเดตตัวเลข "หอพักที่อนุมัติแล้ว"
+                const verifiedElem = document.getElementById('verified-count');
+                if (verifiedElem) verifiedElem.innerText = stats.verified_dorms.toLocaleString();
+
+                // 2. อัปเดตตัวเลข "รอการอนุมัติ" (ถ้ามี id="pending-count")
+                const pendingElem = document.getElementById('pending-count');
+                if (pendingElem) pendingElem.innerText = stats.pending_dorms.toLocaleString();
+
+                // 3. อัปเดตตัวเลข "เจ้าของหอพัก" (ถ้ามี id="total-owners-count")
+                const ownersElem = document.getElementById('total-owners-count');
+                if (ownersElem) ownersElem.innerText = stats.total_owners.toLocaleString();
+
+            } catch (error) {
+                console.error('📊 Stats Load Error:', error);
+            }
+        }
+
+        // เรียกใช้งานครั้งแรกเมื่อโหลดหน้าเว็บสำเร็จ
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboardStats();
+        });
+
+
+        async function loadPendingDormitories() {
+            try {
+                const response = await fetch('/api/admin/dorms');
+                if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลได้');
+
+                const allDorms = await response.json();
+
+                // 1. กรองเฉพาะหอพักที่ต้องตรวจสอบ (หอใหม่ หรือ หอที่ขอแก้ไข)
+                const pendingDorms = allDorms.filter(dorm => {
+                    return (dorm.is_verified === false && dorm.verification_status === 'pending') ||
+                        (dorm.verification_status === 'pending_update');
+                });
+
+                const container = document.getElementById('pending-dorm-grid');
+                const badge = document.getElementById('pending-badge');
+
+                container.innerHTML = '';
+                if (badge) badge.innerText = `${pendingDorms.length} รายการ`;
+
+                if (pendingDorms.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-span-full text-center py-20 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
+                            <p class="text-slate-400 font-medium text-lg">ไม่มีหอพักที่รอการอนุมัติในขณะนี้ ✨</p>
+                        </div>`;
+                    return;
+                }
+
+                pendingDorms.forEach(dorm => {
+                    // 🔥 ตรวจสอบข้อมูลจาก Draft (ถ้ามี)
+                    const hasDraft = dorm.draft !== null;
+                    const isUpdateRequest = dorm.verification_status === 'pending_update';
+
+                    // 🔥 ดึงชื่อ: ถ้าเป็นเคสแก้ไข (isUpdateRequest) ให้ใช้ชื่อจาก draft ถ้าไม่มีค่อยใช้ชื่อเดิม
+                    const displayName = (isUpdateRequest && hasDraft && dorm.draft.name) 
+                                        ? dorm.draft.name 
+                                        : dorm.name;
+
+                    // 🔥 จัดการรูปภาพ: ถ้ามีรูปใหม่ใน Draft ให้ดึงมาแสดงเป็นรูปแรก
+                    let imageUrl = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800';
+                    
+                    if (isUpdateRequest && hasDraft && dorm.draft.new_images_json) {
+                        try {
+                            const draftImages = JSON.parse(dorm.draft.new_images_json);
+                            if (draftImages.length > 0) {
+                                imageUrl = `/static/uploads/dorms/${draftImages[0]}`;
+                            } else if (dorm.images && dorm.images.length > 0) {
+                                imageUrl = `/static/uploads/dorms/${dorm.images[0].filename}`;
+                            }
+                        } catch (e) {
+                            console.error("Error parsing draft images", e);
+                        }
+                    } else if (dorm.images && dorm.images.length > 0) {
+                        imageUrl = `/static/uploads/dorms/${dorm.images[0].filename}`;
+                    }
+
+                    const statusBadge = isUpdateRequest
+                        ? `<span class="bg-blue-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg animate-pulse flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            🔄 ขอแก้ไขข้อมูล
+                        </span>`
+                        : `<span class="bg-amber-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg animate-pulse flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            ⏳ หอพักใหม่
+                        </span>`;
+
+                    const cardHTML = `
+                        <div class="group bg-white rounded-[2.5rem] border ${isUpdateRequest ? 'border-blue-100 shadow-blue-50' : 'border-amber-100 shadow-amber-50'} shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-2">
+                            <div class="relative overflow-hidden">
+                                <img class="h-64 w-full object-cover transform group-hover:scale-110 transition-transform duration-700" 
+                                    src="${imageUrl}" alt="${displayName}">
+                                <div class="absolute top-4 right-4">
+                                    ${statusBadge}
+                                </div>
+                            </div>
+                            
+                            <div class="p-8">
+                                <div class="flex items-center gap-1 text-slate-400 mb-3 text-xs font-bold uppercase tracking-widest">
+                                    ${dorm.dorm_type} ${isUpdateRequest ? '• <span class="text-blue-500">ตรวจสอบการแก้ไข</span>' : ''}
+                                </div>
+                                <h3 class="font-bold text-2xl text-slate-900 mb-2 truncate">${displayName}</h3>
+                                <p class="text-slate-500 text-sm mb-6 flex items-center gap-2">
+                                    👤 เจ้าของ: ${dorm.owner ? (dorm.owner.first_name + ' ' + dorm.owner.last_name) : 'ไม่ระบุ'}
+                                </p>
+                                
+                                <div class="pt-6 border-t border-slate-50 flex justify-between items-center">
+                                    <div>
+                                        <p class="text-[10px] text-slate-400 uppercase font-black mb-1">สถานะ</p>
+                                        <span class="text-sm font-bold ${isUpdateRequest ? 'text-blue-600' : 'text-amber-600'}">
+                                            ${isUpdateRequest ? 'DRAFT MODE' : 'NEW REGISTRATION'}
+                                        </span>
+                                    </div>
+                                    <button onclick="viewDormDetail(${dorm.id})" 
+                                        class="${isUpdateRequest ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-200' : 'bg-amber-500 hover:bg-amber-600 shadow-amber-200'} text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-md active:scale-95">
+                                        ตรวจสอบข้อมูล
+                                    </button>
+                                </div>
+                            </div>
+                        </div>`;
+                    container.insertAdjacentHTML('beforeend', cardHTML);
+                });
+            } catch (error) {
+                console.error('Pending Load Error:', error);
+            }
+        }
+
+
+        //-------------แก้ไขหอพัก-------------
+
+        // ฟังก์ชันเปิด Modal และใส่ข้อมูลเดิมลงใน Form
+        async function openEditDormModal(dormId) {
+
+            imagesToDelete = []; // รีเซ็ตรายการที่จะลบทุกครั้งที่เปิด Modal
+            document.getElementById('new_image_previews').innerHTML = ''; // ล้างรูป preview ใหม่
+            document.getElementById('edit_images_input').value = ''; // ล้างค่าไฟล์ที่เลือกค้างไว้
+
+            try {
+                const response = await fetch(`/api/admin/dorm-detail/${dormId}`);
+                if (!response.ok) throw new Error('ไม่พบข้อมูลหอพักจากเซิร์ฟเวอร์');
+
+                const dorm = await response.json();
+
+                // 1. ฟังก์ชันช่วยใส่ค่าแบบปลอดภัย
+                const safeSet = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = value || (typeof value === 'number' ? 0 : '');
+                };
+
+                const safeCheck = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el) el.checked = !!value;
+                };
+
+                // 2. ใส่ข้อมูลพื้นฐาน (เรียกใช้ safeSet ครั้งเดียวพอ)
+                safeSet('edit_dorm_id', dorm.id);
+                safeSet('edit_name', dorm.name);
+                safeSet('edit_room_type', dorm.room_type); // ใส่ได้เลย ถ้าไม่มีใน HTML ก็ไม่พัง
+                safeSet('edit_price_start', dorm.price_start);
+                safeSet('edit_vacancy_count', dorm.vacancy_count);
+                safeSet('edit_distance', dorm.distance_to_rmuti);
+                safeSet('edit_description', dorm.description);
+                safeSet('edit_contact_number', dorm.contact_number);
+                safeSet('edit_line_id', dorm.line_id);
+                safeSet('edit_dorm_type', dorm.dorm_type);
+                safeSet('edit_google_map', dorm.google_map_link);
+                safeSet('edit_address', dorm.address);
+
+                // 3. ใส่ข้อมูล Checkbox (สิ่งอำนวยความสะดวก)
+                const facilities = [
+                    'has_wifi', 'has_air_conditioner', 'has_parking', 'has_laundry',
+                    'is_pet_friendly', 'has_water_heater', 'has_elevator', 'has_furniture',
+                    'has_refrigerator', 'has_keycard', 'has_cctv', 'has_security_guard',
+                    'has_fitness', 'has_drinking_water'
+                ];
+                facilities.forEach(f => safeCheck(`edit_${f}`, dorm[f]));
+
+                // 4. การจัดการรูปภาพ Preview
+                const imagePreviewContainer = document.getElementById('edit_image_previews');
+                imagePreviewContainer.innerHTML = '';
+                
+                if (dorm.images && dorm.images.length > 0) {
+                    dorm.images.forEach(img => {
+                        const imgDiv = document.createElement('div');
+                        imgDiv.className = "relative w-24 h-24 group";
+                        imgDiv.id = `old-img-container-${img.id}`;
+                        imgDiv.innerHTML = `
+                            <img src="/static/uploads/dorms/${img.filename}" class="w-full h-full object-cover rounded-xl border">
+                            <button type="button" onclick="markImageForDeletion(${img.id})" 
+                                class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg hover:bg-red-600 transition-transform hover:scale-110">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="3"></path></svg>
+                            </button>
+                        `;
+                        imagePreviewContainer.appendChild(imgDiv);
+                    });
+                }
+                document.getElementById('editDormModal').classList.remove('hidden');
+
+                // 5. แสดง Modal
+                const modal = document.getElementById('editDormModal');
+                if (modal) modal.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Error loading dorm details:", error);
+                showToast("❌ ผิดพลาด", "ไม่สามารถดึงข้อมูลได้: " + error.message, "error");
+            }
+        }
+
+        // 2. ฟังก์ชันมาร์ครูปที่จะลบ
+        function markImageForDeletion(imgId) {
+            if (!imagesToDelete.includes(imgId)) {
+                imagesToDelete.push(imgId);
+                // จางรูปภาพเพื่อให้รู้ว่าจะโดนลบ
+                const container = document.getElementById(`old-img-container-${imgId}`);
+                container.classList.add('opacity-30', 'grayscale');
+                container.querySelector('button').innerHTML = '↩'; // เปลี่ยนเป็นปุ่มยกเลิกการลบ (Optional)
+                container.querySelector('button').onclick = () => unmarkImageForDeletion(imgId);
+            }
+        }
+
+        function unmarkImageForDeletion(imgId) {
+            imagesToDelete = imagesToDelete.filter(id => id !== imgId);
+            const container = document.getElementById(`old-img-container-${imgId}`);
+            container.classList.remove('opacity-30', 'grayscale');
+            container.querySelector('button').innerHTML = '✕'; // กลับเป็นกากบาท
+            container.querySelector('button').onclick = () => markImageForDeletion(imgId);
+        }
+
+        // 3. ฟังก์ชัน Preview รูปใหม่ที่จะเพิ่ม
+        function handleNewImagesPreview(input) {
+            const container = document.getElementById('new_image_previews');
+            container.innerHTML = '';
+            if (input.files) {
+                Array.from(input.files).forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = `<div class="w-24 h-24 border-2 border-dashed border-indigo-200 rounded-xl overflow-hidden shadow-inner">
+                                        <img src="${e.target.result}" class="w-full h-full object-cover opacity-70">
+                                    </div>`;
+                        container.insertAdjacentHTML('beforeend', img);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        }
+
+        // ฟังก์ชันบันทึกข้อมูล (แอดมินกด Save)
+        async function saveAdminEdit() {
+            const dormId = document.getElementById('edit_dorm_id').value;
+            const form = document.getElementById('editDormForm');
+            const formData = new FormData(form);
+
+            // เพิ่มรายการ ID รูปที่จะลบเข้าไปใน FormData
+            formData.append('delete_image_ids', JSON.stringify(imagesToDelete));
+
+            // จัดการ Checkbox (เหมือนเดิม)
+            const facilityFields = ['has_wifi', 'has_air_conditioner', 'has_parking', 'has_laundry', 'is_pet_friendly', 'has_water_heater', 'has_elevator', 'has_furniture', 'has_refrigerator', 'has_keycard', 'has_cctv', 'has_security_guard', 'has_fitness', 'has_drinking_water'];
+            facilityFields.forEach(field => {
+                const cb = document.getElementById(`edit_${field}`);
+                if (cb) {
+                    formData.delete(field);
+                    formData.append(field, cb.checked);
+                }
+            });
+
+            try {
+                const response = await fetch(`/api/admin/update-dorm/${dormId}`, {
+                    method: 'PUT',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    showToast("✅ สำเร็จ", "อัปเดตข้อมูลและรูปภาพเรียบร้อย", "success");
+                    document.getElementById('editDormModal').classList.add('hidden');
+                    loadAllDormitories();
+                } else {
+                    const err = await response.json();
+                    showToast("❌ พลาด", err.detail, "error");
+                }
+            } catch (error) {
+                showToast("❌ ผิดพลาด", "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้", "error");
+            }
+        }
+
+
+        // ฟังก์ชันสำหรับแอดมินลบหอพัก
+        async function deleteDormByAdmin(dormId, dormName) {
+            // 1. ถามยืนยันเพื่อความปลอดภัย (เนื่องจากเป็นการลบถาวร)
+            const isConfirmed = confirm(`⚠️ คำเตือน: คุณกำลังจะลบหอพัก "${dormName}" ออกจากระบบถาวร\n\nการดำเนินการนี้จะลบข้อมูลและรูปภาพทั้งหมด และเจ้าของหอพักจะได้รับแจ้งเตือน\n\nยืนยันการลบหรือไม่?`);
+            
+            if (!isConfirmed) return;
+
+            try {
+                // แสดงสถานะ Loading (ตัวเลือกเพิ่มเติม)
+                console.log(`🗑️ กำลังลบหอพัก ID: ${dormId}...`);
+
+                const response = await fetch(`/api/admin/delete-dorm/${dormId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                        // หากระบบใช้ Bearer Token อย่าลืมใส่ Authorization ตรงนี้
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // 2. แสดงแจ้งเตือนสำเร็จ
+                    if (typeof showToast === "function") {
+                        showToast("ลบข้อมูลสำเร็จ", `หอพัก ${dormName} ถูกนำออกจากระบบแล้ว`, "success");
+                    } else {
+                        alert("✅ " + result.message);
+                    }
+
+                    // 3. รีโหลดรายการหอพักใหม่ทันที
+                    loadAllDormitories();
+                    
+                    // 4. รีโหลดสถิติ (ถ้ามีฟังก์ชันนี้)
+                    if (typeof loadStats === "function") loadStats();
+
+                } else {
+                    throw new Error(result.detail || "ไม่สามารถลบหอพักได้");
+                }
+
+            } catch (error) {
+                console.error("❌ Delete Error:", error);
+                alert("เกิดข้อผิดพลาด: " + error.message);
+            }
+        }
+
+
+
+        // เพิ่มส่วนนี้เข้าไปที่ท้ายไฟล์ admin.js ของคุณ
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("🚀 หน้าเว็บโหลดเสร็จแล้ว กำลังดึงข้อมูล...");
+            
+            // 1. โหลดตัวเลขสถิติบน Card
+            if (typeof loadDashboardStats === 'function') loadDashboardStats();
+            
+            // 2. โหลดรายการหอพักที่รออนุมัติ (ตัวที่คุณเจอปัญหา)
+            if (typeof loadPendingDormitories === 'function') loadPendingDormitories();
+            
+            // 3. โหลดรายการหอพักที่อนุมัติแล้ว
+            if (typeof loadAllDormitories === 'function') loadAllDormitories();
+        });
+
+
+        function logout() {
+            localStorage.removeItem('user_role');
+            window.location.href = '/api/auth/logout';
+        }
+    </script>
+</body>
+</html>

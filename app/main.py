@@ -33,6 +33,7 @@ from pydantic import BaseModel
 from app.schemas import ViewRecordRequest
 from configmail import conf  # <--- Import มาจากไฟล์ที่เราสร้าง
 from fastapi_mail import FastMail, MessageSchema
+import re
 
 
 # กำหนด Path สำหรับเก็บรูปภาพ
@@ -417,20 +418,19 @@ async def login(
 # API ดึงข้อมูลหอพักหน้า index
 @app.get("/api/public/dorms", response_model=List[schemas.DormitoryResponse])
 async def get_public_dorms(
-    t: Optional[str] = None,         # เดิม: รับ timestamp
-    search: Optional[str] = None,    # ใหม่: รับคำค้นหา
-    sort: Optional[str] = None,      # ใหม่: รับการเรียงลำดับ
-    dorm_type: Optional[str] = None, # ใหม่: รับประเภทหอพัก
-    amenities: Optional[str] = None, # ใหม่: รับสิ่งอำนวยความสะดวก
+    t: Optional[str] = None,
+    search: Optional[str] = None,
+    sort: Optional[str] = None,
+    dorm_type: Optional[str] = None,
+    amenities: Optional[str] = None,
+    max_distance: Optional[float] = None,
     db: AsyncSession = Depends(get_db), 
     rd = Depends(get_redis)
 ):
     cache_key = "public_verified_dorms"
-    
-    # เช็คว่ามีการใช้ตัวกรองหรือไม่
-    is_filtering = any([search, sort, dorm_type, amenities])
+    is_filtering = any([search, sort, dorm_type, amenities, max_distance])
 
-    # 1. จัดการ Redis (เหมือนเดิมแต่เพิ่มเงื่อนไข: ถ้า filter อยู่จะไม่ดึง cache เก่ามาใช้)
+    # 1. Redis Cache
     if not t and not is_filtering:
         try:
             cached_data = await rd.get(cache_key)
@@ -439,11 +439,9 @@ async def get_public_dorms(
         except Exception as e:
             print(f"Redis Error: {e}")
 
-    # 2. เตรียมตัวดึงข้อมูลจาก DB
     await db.execute(text("SET TRANSACTION ISOLATION LEVEL READ COMMITTED"))
-    db.expire_all()
-
-    # --- ส่วนที่เพิ่มใหม่: สร้าง Query แบบยืดหยุ่น ---
+    
+    # --- 2. สร้าง Query (ต้องมีส่วนนี้ติ๊กเลือกถึงจะทำงาน) ---
     query = select(models.Dormitory).where(models.Dormitory.is_verified == True)
 
     # กรองตามคำค้นหา
@@ -459,13 +457,15 @@ async def get_public_dorms(
     if dorm_type and dorm_type != "all":
         query = query.filter(models.Dormitory.dorm_type == dorm_type)
 
-    # กรองตามสิ่งอำนวยความสะดวก (Checkboxes)
+    # กรองตามสิ่งอำนวยความสะดวก (Checkboxes) - **จุดที่ทำให้ติ๊กเลือกทำงาน**
     if amenities:
         for am in amenities.split(','):
-            if hasattr(models.Dormitory, am.strip()):
-                query = query.filter(getattr(models.Dormitory, am.strip()) == True)
+            attr = am.strip()
+            if hasattr(models.Dormitory, attr):
+                # กรองเฉพาะห้องที่เป็น True
+                query = query.filter(getattr(models.Dormitory, attr) == True)
 
-    # จัดลำดับการแสดงผล
+    # 3. จัดลำดับ (Sort)
     if sort == "price_asc":
         query = query.order_by(models.Dormitory.price_start.asc())
     elif sort == "price_desc":
@@ -475,26 +475,42 @@ async def get_public_dorms(
     elif sort == "vacancy":
         query = query.order_by(models.Dormitory.vacancy_count.desc())
     else:
-        query = query.order_by(models.Dormitory.created_at.desc()) # ค่าเริ่มต้นเหมือนเดิม
+        query = query.order_by(models.Dormitory.created_at.desc())
 
-    # --- จบส่วนที่เพิ่มใหม่ ---
-
-    # 3. รัน Query (ใช้ตัวแปร query ที่สร้างไว้ด้านบน)
+    # 4. Execute Query
     result = await db.execute(query.options(selectinload(models.Dormitory.images)))
     dorms = result.scalars().all()
-    
-    # DEBUG เดิมของคุณ
-    for d in dorms:
-        print(f"DORM DEBUG: {d.name} has {d.total_views} views")
 
+    # 5. กรองระยะทางด้วย Python (เฉพาะถ้ามีการส่ง max_distance มา)
+    if max_distance is not None:
+        filtered_results = []
+        for d in dorms:
+            if not d.distance_to_rmuti:
+                continue
+            
+            dist_text = d.distance_to_rmuti.lower()
+            try:
+                numbers = re.findall(r"[-+]?\d*\.\d+|\d+", dist_text)
+                if not numbers: continue
+                
+                val = float(numbers[0])
+                if "กม" in dist_text or "km" in dist_text:
+                    val *= 1000
+                
+                if val <= max_distance:
+                    filtered_results.append(d)
+            except:
+                continue
+        dorms = filtered_results
+
+    # 6. ส่งข้อมูลกลับ
     safe_data = jsonable_encoder(dorms)
 
-    # 4. อัปเดต Cache กลับไป (เฉพาะกรณีที่ไม่ได้กรอง เพื่อไม่ให้ผลการค้นหาไปทับหน้าแรก)
     if not is_filtering:
         try:
             await rd.setex(cache_key, 300, json.dumps(safe_data))
-        except Exception as e:
-            print(f"Redis Save Error: {e}")
+        except:
+            pass
 
     return safe_data
 

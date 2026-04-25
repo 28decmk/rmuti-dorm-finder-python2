@@ -535,30 +535,55 @@ function toggleFilterSection() {
     section.classList.toggle('hidden');
 }
 
+
+// ฟังก์ชันเปลี่ยนตัวเลขที่แสดงบนหน้าจอ
+function updateDistanceDisplay(val) {
+    const display = document.getElementById('distance-display');
+    if (val >= 5000) {
+        display.innerText = "ทั้งหมด";
+    } else if (val >= 1000) {
+        display.innerText = (val / 1000).toFixed(1) + " กม.";
+    } else {
+        display.innerText = val + " เมตร";
+    }
+}
+
+
 // ฟังก์ชัน รวบรวมค่าจาก Filter ทั้งหมดแล้วส่งไป API
 async function applyFilters() {
     const sort = document.getElementById('filter-sort').value;
     const type = document.getElementById('filter-type').value;
     const search = document.getElementById('search-input').value.trim();
+    // ดึงค่าระยะทางจาก Slider
+    const distance = document.getElementById('filter-distance').value;
     
-    // ดึงค่าจาก Checkboxes
     const amenities = Array.from(document.querySelectorAll('input[name="amenity"]:checked'))
         .map(cb => cb.value)
         .join(',');
 
-    // สร้าง URL Parameters
     let params = new URLSearchParams();
+    params.append('t', Date.now()); 
+
     if (search) params.append('search', search);
     if (sort && sort !== 'latest') params.append('sort', sort);
     if (type && type !== 'all') params.append('dorm_type', type);
     if (amenities) params.append('amenities', amenities);
+    
+    // เพิ่มการส่งค่า max_distance ไปที่ API (ถ้าไม่ใช่ค่าสูงสุด 5000)
+    if (distance < 5000) {
+        params.append('max_distance', distance);
+    }
 
     const url = `/api/public/dorms?${params.toString()}`;
     
-    // เรียกใช้ฟังก์ชันดึงข้อมูลเดิมที่คุณมี
+    const container = document.getElementById('dorm-container');
+    if (container) container.style.opacity = '0.5';
+
     if (typeof fetchRecommendedDorms === 'function') {
-        fetchRecommendedDorms(url);
+        await fetchRecommendedDorms(url);
     }
+
+    if (container) container.style.opacity = '1';
 }
 
 

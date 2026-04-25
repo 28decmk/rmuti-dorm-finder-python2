@@ -71,50 +71,136 @@
                         ค้นหา
                     </button>
                 </div>
-                <button onclick="toggleFilterSection()" class="p-4 bg-white border border-slate-100 rounded-2xl shadow-xl text-slate-600 hover:text-[#003399] transition-all active:scale-95">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <button onclick="toggleFilterSection()" 
+                    class="flex items-center gap-2 px-6 py-3 bg-white border border-slate-100 rounded-2xl shadow-xl text-slate-600 hover:text-[#003399] hover:border-[#003399]/20 transition-all active:scale-95 group">
+                    
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 group-hover:text-[#003399] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                     </svg>
+
+                    <span class="text-sm font-black tracking-wide">คัดกรองหอพัก</span>
+
+                    <i class="fas fa-chevron-down text-[10px] ml-1 opacity-50 group-hover:translate-y-0.5 transition-transform"></i>
                 </button>
             </div>
 
-            <section id="filter-section" class="max-w-4xl mx-auto mt-6 bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl hidden animate-in slide-in-from-top-4 duration-300">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div class="space-y-2">
-                        <label class="text-xs font-black text-slate-400 uppercase tracking-wider">เรียงตาม</label>
-                        <select id="filter-sort" onchange="applyFilters()" class="w-full bg-slate-50 border-none rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-[#003399]">
-                            <option value="latest">ล่าสุด</option>
-                            <option value="price_asc">ราคา: ถูก -> แพง</option>
-                            <option value="price_desc">ราคา: แพง -> ถูก</option>
-                            <option value="views">ยอดเข้าชมสูงสุด</option>
-                            <option value="vacancy">ห้องว่าง (มากไปน้อย)</option>
-                        </select>
+            <section id="filter-section" class="max-w-5xl mx-auto mt-6 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-2xl hidden animate-in slide-in-from-top-4 duration-300">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-10">
+                    
+                    <div class="md:col-span-5 space-y-8 border-r border-slate-50 pr-0 md:pr-10">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">เรียงตาม</label>
+                                <select id="filter-sort" onchange="applyFilters()" class="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-[#003399]">
+                                    <option value="latest">🏠 ล่าสุด</option>
+                                    <option value="price_asc">💰 ราคาต่ำ-สูง</option>
+                                    <option value="price_desc">💵 ราคาสูง-ต่ำ</option>
+                                    <option value="views">🔥 ยอดนิยม</option>
+                                </select>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">ประเภท</label>
+                                <select id="filter-type" onchange="applyFilters()" class="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-[#003399]">
+                                    <option value="all">ทั้งหมด</option>
+                                    <option value="หอพักรวม">👫 หอพักรวม</option>
+                                    <option value="หอพักชาย">👨 หอพักชาย</option>
+                                    <option value="หอพักหญิง">👩 หอพักหญิง</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4 pt-6 border-t border-slate-50">
+                            <div class="flex justify-between items-center">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">ระยะห่าง (ไม่เกิน)</label>
+                                <span id="distance-display" class="text-sm font-black text-[#003399]">ทั้งหมด</span>
+                            </div>
+                            <div class="px-2">
+                                <input type="range" id="filter-distance" min="0" max="5000" step="100" value="5000" 
+                                    oninput="updateDistanceDisplay(this.value)" onchange="applyFilters()"
+                                    class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-[#003399]">
+                                <div class="flex justify-between mt-3 text-[10px] font-bold text-slate-400">
+                                    <span>0 ม.</span>
+                                    <span>2.5 กม.</span>
+                                    <span>5 กม.+</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="space-y-2">
-                        <label class="text-xs font-black text-slate-400 uppercase tracking-wider">ประเภท</label>
-                        <select id="filter-type" onchange="applyFilters()" class="w-full bg-slate-50 border-none rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-[#003399]">
-                            <option value="all">ทั้งหมด</option>
-                            <option value="หอพักรวม">หอพักรวม</option>
-                            <option value="หอพักชาย">หอพักชาย</option>
-                            <option value="หอพักหญิง">หอพักหญิง</option>
-                        </select>
-                    </div>
+                    <div class="md:col-span-7 space-y-4">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">สิ่งอำนวยความสะดวก</label>
+                        
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-y-3 gap-x-2">
+                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
+                                <input type="checkbox" name="amenity" value="has_wifi" onchange="applyFilters()" 
+                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">📶 WiFi</span>
+                            </label>
 
-                    <div class="md:col-span-2 space-y-2">
-                        <label class="text-xs font-black text-slate-400 uppercase tracking-wider">สิ่งอำนวยความสะดวก</label>
-                        <div class="flex flex-wrap gap-2">
-                            <label class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-slate-100">
-                                <input type="checkbox" name="amenity" value="is_pet_friendly" onchange="applyFilters()" class="w-4 h-4 rounded text-[#FF6600] focus:ring-[#FF6600]">
-                                <span class="text-[11px] font-bold text-slate-600">เลี้ยงสัตว์ได้</span>
+                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
+                                <input type="checkbox" name="amenity" value="has_air_conditioner" onchange="applyFilters()" 
+                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">❄️ แอร์</span>
                             </label>
-                            <label class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-slate-100">
-                                <input type="checkbox" name="amenity" value="has_air_conditioner" onchange="applyFilters()" class="w-4 h-4 rounded text-[#FF6600] focus:ring-[#FF6600]">
-                                <span class="text-[11px] font-bold text-slate-600">แอร์</span>
+
+                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
+                                <input type="checkbox" name="amenity" value="has_water_heater" onchange="applyFilters()" 
+                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">🚿 น้ำอุ่น</span>
                             </label>
-                            <label class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-slate-100">
-                                <input type="checkbox" name="amenity" value="has_wifi" onchange="applyFilters()" class="w-4 h-4 rounded text-[#FF6600] focus:ring-[#FF6600]">
-                                <span class="text-[11px] font-bold text-slate-600">WiFi</span>
+
+                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
+                                <input type="checkbox" name="amenity" value="has_furniture" onchange="applyFilters()" 
+                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">🛏️ เฟอร์ฯ</span>
+                            </label>
+
+                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
+                                <input type="checkbox" name="amenity" value="has_parking" onchange="applyFilters()" 
+                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">🚗 ที่จอดรถ</span>
+                            </label>
+
+                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
+                                <input type="checkbox" name="amenity" value="is_pet_friendly" onchange="applyFilters()" 
+                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">🐾 สัตว์เลี้ยง</span>
+                            </label>
+
+                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
+                                <input type="checkbox" name="amenity" value="has_elevator" onchange="applyFilters()" 
+                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">🛗 ลิฟต์</span>
+                            </label>
+
+                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
+                                <input type="checkbox" name="amenity" value="has_fitness" onchange="applyFilters()" 
+                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">💪 ฟิตเนส</span>
+                            </label>
+
+                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
+                                <input type="checkbox" name="amenity" value="has_keycard" onchange="applyFilters()" 
+                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">🔑 คีย์การ์ด</span>
+                            </label>
+
+                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
+                                <input type="checkbox" name="amenity" value="has_security_guard" onchange="applyFilters()" 
+                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">👮 รปภ.</span>
+                            </label>
+
+                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
+                                <input type="checkbox" name="amenity" value="has_laundry" onchange="applyFilters()" 
+                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">🧺 ซักผ้า</span>
+                            </label>
+
+                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
+                                <input type="checkbox" name="amenity" value="has_drinking_water" onchange="applyFilters()" 
+                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">💧 ตู้น้ำ</span>
                             </label>
                         </div>
                     </div>

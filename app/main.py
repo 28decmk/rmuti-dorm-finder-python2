@@ -267,7 +267,11 @@ async def home(request: Request, access_token: str = Cookie(None)):
             response.delete_cookie("access_token")
             return response
 
-    return templates.TemplateResponse("index.html", {"request": request, "title": "หน้าแรก"})
+    return templates.TemplateResponse(
+    request=request, 
+    name="index.html", 
+    context={"title": "หน้าแรก"}
+)
 
 
 # หน้า ลงทะเบียน owner
@@ -521,31 +525,32 @@ async def get_public_dorms(
 async def get_public_dorm_detail(dorm_id: int, db: AsyncSession = Depends(get_db), rd = Depends(get_redis)):
     cache_key = f"dorm_detail:{dorm_id}"
     
-    # 1. ลองดึงจาก Cache
+    # 1. ลองดึงจาก Cache (เหมือนเดิม)
     cached_data = await rd.get(cache_key)
     if cached_data:
         return json.loads(cached_data)
     
-    # 2. ถ้าไม่มีใน Cache ให้ดึงจาก DB
-    # เพิ่มบรรทัดนี้เพื่อป้องกัน SQLAlchemy คืนค่าเก่าใน session
     await db.execute(text("COMMIT"))
 
-    # 2. ถ้าไม่มีใน Cache ให้ดึงจาก DB
+    # 2. ดึงจาก DB พร้อมโหลด room_types และ room_images (พ่วงกันเป็นทอดๆ)
     result = await db.execute(
         select(models.Dormitory)
         .where(models.Dormitory.id == dorm_id, models.Dormitory.is_verified == True)
-        .options(selectinload(models.Dormitory.images))
+        .options(
+            selectinload(models.Dormitory.images),
+            selectinload(models.Dormitory.room_types).selectinload(models.RoomType.room_images) # 👈 โหลดข้อมูลห้องพักและรูปห้องพัก
+        )
     )
     dorm = result.scalar_one_or_none()
 
     if not dorm:
         raise HTTPException(status_code=404, detail="ไม่พบข้อมูลหอพัก")
 
-    # แปลงเป็น dict เพื่อเก็บเข้า Redis
+    # แปลงเป็น dict
     dorm_data = {
         "id": dorm.id,
         "name": dorm.name,
-        "total_views": dorm.total_views, # 👈 เพิ่มบรรทัดนี้เข้าไป!
+        "total_views": dorm.total_views,
         "description": dorm.description,
         "address": dorm.address,
         "price_start": dorm.price_start,
@@ -555,19 +560,30 @@ async def get_public_dorm_detail(dorm_id: int, db: AsyncSession = Depends(get_db
         "line_id": dorm.line_id,
         "google_map_link": dorm.google_map_link,
         "dorm_type": dorm.dorm_type,
-        "room_type": dorm.room_type,
-        # Amenities
-        "has_wifi": dorm.has_wifi, "has_air_conditioner": dorm.has_air_conditioner,
-        "has_parking": dorm.has_parking, "has_laundry": dorm.has_laundry,
-        "is_pet_friendly": dorm.is_pet_friendly, "has_water_heater": dorm.has_water_heater,
-        "has_elevator": dorm.has_elevator, "has_furniture": dorm.has_furniture,
-        "has_refrigerator": dorm.has_refrigerator, "has_keycard": dorm.has_keycard,
-        "has_cctv": dorm.has_cctv, "has_security_guard": dorm.has_security_guard,
-        "has_fitness": dorm.has_fitness, "has_drinking_water": dorm.has_drinking_water,
-        "images": [{"filename": img.filename} for img in dorm.images]
+        "images": [{"filename": img.filename} for img in dorm.images],
+        
+        # ✅ เพิ่มข้อมูล Room Types ลงไปในก้อนเดียวเลย
+        "room_types": [
+            {
+                "id": rt.id,
+                "name": rt.name,
+                "price": rt.price,
+                "vacancy_count": rt.vacancy_count,
+                "description": rt.description,
+                "has_air_conditioner": rt.has_air_conditioner,
+                "has_fan": rt.has_fan,
+                "has_refrigerator": rt.has_refrigerator,
+                "has_tv": rt.has_tv,
+                "has_water_heater": rt.has_water_heater,
+                "has_balcony": rt.has_balcony,
+                "has_kitchen_sink": rt.has_kitchen_sink,
+                "has_microwave": rt.has_microwave,
+                "room_images": [{"filename": rimg.filename} for rimg in rt.room_images]
+            } for rt in dorm.room_types
+        ]
     }
 
-    # 3. เก็บเข้า Cache (1 ชั่วโมง)
+    # 3. เก็บเข้า Cache (3600 วินาที)
     await rd.setex(cache_key, 3600, json.dumps(dorm_data))
     return dorm_data
 
@@ -696,53 +712,72 @@ async def create_booking(
     db: AsyncSession = Depends(get_db),
     rd = Depends(get_redis)
 ):
-    # 1. ตรวจสอบก่อนว่าหอพักนี้มีจริงไหม
+    # 1. ตรวจสอบหอพัก
     result = await db.execute(select(models.Dormitory).where(models.Dormitory.id == booking_in.dorm_id))
     dorm = result.scalar_one_or_none()
     
     if not dorm:
-        raise HTTPException(status_code=404, detail="ไม่พบข้อมูลหอพักที่ต้องการจอง")
+        raise HTTPException(status_code=404, detail="ไม่พบข้อมูลหอพัก")
+
+    room_name = "ไม่ได้ระบุประเภทห้อง"
+    if booking_in.room_type_id:
+        rt_result = await db.execute(select(models.RoomType).where(models.RoomType.id == booking_in.room_type_id))
+        room_type = rt_result.scalar_one_or_none()
+        if room_type:
+            room_name = room_type.name
 
     # 2. บันทึกลงฐานข้อมูล
+    # 💡 จุดแก้ไขสำคัญ: แปลง String วันที่จาก JS ให้เป็น Object Python datetime
+    # เพราะบาง Database ไม่ยอมรับ String "2026-05-29" เข้า Column DateTime ตรงๆ
+    try:
+        if isinstance(booking_in.check_in_date, str):
+            final_check_in = datetime.strptime(booking_in.check_in_date, '%Y-%m-%d')
+        else:
+            final_check_in = booking_in.check_in_date
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"รูปแบบวันที่ไม่ถูกต้อง: {str(e)}")
+
     new_booking = models.DormBooking(
         dorm_id=booking_in.dorm_id,
+        room_type_id=booking_in.room_type_id,
         guest_name=booking_in.guest_name,
         guest_phone=booking_in.guest_phone,
-        check_in_date=booking_in.check_in_date,
+        check_in_date=final_check_in, # ใช้ค่าที่แปลงแล้ว
         remark=booking_in.remark,
-        status="pending" # สถานะเริ่มต้น
+        status="pending"
     )
     
-    db.add(new_booking)
-    
     try:
+        db.add(new_booking)
         await db.commit()
         await db.refresh(new_booking)
-
-        # 3. ส่งการแจ้งเตือนผ่าน Redis (แจ้งไปที่ Owner ของหอนี้)
-        try:
-            booking_notification = {
-                "event": "new_booking_received",
-                "owner_id": dorm.owner_id, # แจ้งเฉพาะเจ้าของหอนี้
-                "data": {
-                    "booking_id": new_booking.id,
-                    "dorm_name": dorm.name,
-                    "guest_name": new_booking.guest_name,
-                    "guest_phone": new_booking.guest_phone,
-                    "message": f"มีรายการจองใหม่จากคุณ {new_booking.guest_name} ที่หอ {dorm.name}"
-                }
-            }
-            # ส่งไปที่ channel เดียวกับที่ owner ฟังอยู่
-            await rd.publish("owner_updates", json.dumps(booking_notification))
-        except Exception as redis_err:
-            print(f"Redis Notify Error: {redis_err}") # ล้มเหลวไม่เป็นไร เพราะ DB บันทึกไปแล้ว
-
-        return new_booking
-
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=f"ไม่สามารถบันทึกการจองได้: {str(e)}")
+        # 🚩 ถ้าพังตรงนี้ จะได้รู้ว่าพังเพราะ Database (เช่นลืม Migrate หรือ Column ไม่ตรง)
+        print(f"Database Error: {e}") 
+        raise HTTPException(status_code=500, detail="เกิดข้อผิดพลาดในการบันทึกฐานข้อมูล")
 
+    # 3. ส่งการแจ้งเตือน (Redis)
+    try:
+        booking_notification = {
+            "event": "new_booking_received",
+            "owner_id": dorm.owner_id,
+            "data": {
+                "booking_id": new_booking.id,
+                "dorm_name": dorm.name,
+                "room_type_name": room_name,
+                "guest_name": new_booking.guest_name,
+                "message": f"จองใหม่! {dorm.name} [{room_name}] โดยคุณ {new_booking.guest_name}"
+            }
+        }
+        # ตรวจสอบว่า rd ไม่เป็น None ก่อน publish
+        if rd:
+            await rd.publish("owner_updates", json.dumps(booking_notification))
+    except Exception as e: 
+        print(f"Redis Notification Error: {e}")
+        pass # ถึงแจ้งเตือนไม่ไป แต่จองสำเร็จแล้วก็ยอมให้ผ่าน
+
+    return new_booking
 
 
 
@@ -787,7 +822,12 @@ async def admin_dashboard(
         "request": request,
         "admin_user": payload.get("sub") 
     }
-    return templates.TemplateResponse("admin_dashboard.html", context)
+
+    return templates.TemplateResponse(
+    request=request, 
+    name="admin_dashboard.html", 
+    context=context
+)
 
 
 # API สำหรับดึงรายชื่อ Owner ที่รออนุมัติ
@@ -1038,7 +1078,9 @@ async def admin_get_all_dorms(
         .options(
             selectinload(models.Dormitory.images),
             selectinload(models.Dormitory.owner), # <--- ต้องเพิ่มบรรทัดนี้ด้วย!!!
-            selectinload(models.Dormitory.draft) # 🚨 ต้องเพิ่มบรรทัดนี้ด้วย!!!
+            selectinload(models.Dormitory.draft),
+            selectinload(models.Dormitory.room_types), # 🚨 ต้องเพิ่มบรรทัดนี้ด้วย!!!
+            selectinload(models.Dormitory.room_types).selectinload(models.RoomType.room_images)
         )
     )
     return result.scalars().all()
@@ -1065,8 +1107,10 @@ async def get_dorm_detail(
         .where(models.Dormitory.id == dorm_id)
         .options(
             selectinload(models.Dormitory.images),
-            selectinload(models.Dormitory.owner),
-            selectinload(models.Dormitory.draft) # 🚨 โหลดข้อมูลที่ Owner แก้ไขมาด้วย
+            selectinload(models.Dormitory.owner), # <--- ต้องเพิ่มบรรทัดนี้ด้วย!!!
+            selectinload(models.Dormitory.draft),
+            selectinload(models.Dormitory.room_types), # 🚨 ต้องเพิ่มบรรทัดนี้ด้วย!!!
+            selectinload(models.Dormitory.room_types).selectinload(models.RoomType.room_images)
         )
     )
     dorm = result.scalar_one_or_none()
@@ -1539,7 +1583,12 @@ async def owner_dashboard(
         "owner_user": payload.get("sub"),
         "user_id": payload.get("user_id")
     }
-    return templates.TemplateResponse("owner_dashboard.html", context)
+
+    return templates.TemplateResponse(
+    request=request, 
+    name="owner_dashboard.html", 
+    context=context
+)
 
 
 # แสดงชื่อ owner 
@@ -1732,6 +1781,87 @@ async def create_dormitory(
         raise HTTPException(status_code=500, detail=f"เกิดข้อผิดพลาด: {str(e)}")
 
 
+
+# API เพิ่มประเภทห้อง
+@app.post("/api/owner/dorms/{dorm_id}/room-types")
+async def add_room_types(
+    dorm_id: int,
+    room_types_json: str = Form(...), 
+    room_images: List[UploadFile] = File(None), 
+    db: AsyncSession = Depends(get_db),
+    payload: dict = Depends(owner_only),
+    rd = Depends(get_redis)
+):
+    owner_id = payload.get("user_id")
+    
+    # 1. เช็คสิทธิ์เจ้าของ
+    stmt = select(models.Dormitory).where(models.Dormitory.id == dorm_id, models.Dormitory.owner_id == owner_id)
+    result = await db.execute(stmt)
+    dorm = result.scalar_one_or_none()
+    if not dorm:
+        raise HTTPException(status_code=403, detail="คุณไม่มีสิทธิ์จัดการหอพักนี้")
+    
+    try:
+        # ⚡️ ตรงนี้จะทำให้ room_types_json หายจาง เพราะถูกเรียกใช้งานแล้ว
+        room_data_list = json.loads(room_types_json)
+
+        for index, rt_data in enumerate(room_data_list):
+            new_room = models.RoomType(
+                name=rt_data['name'],
+                price=rt_data['price'],
+                vacancy_count=rt_data['vacancy_count'],
+                description=rt_data.get('description'),
+                dorm_id=dorm_id,
+                # กระจายค่าสิ่งอำนวยความสะดวก
+                has_air_conditioner=rt_data.get('has_air_conditioner', False),
+                has_fan=rt_data.get('has_fan', False),
+                has_refrigerator=rt_data.get('has_refrigerator', False),
+                has_tv=rt_data.get('has_tv', False),
+                has_water_heater=rt_data.get('has_water_heater', False),
+                has_balcony=rt_data.get('has_balcony', False),
+                has_kitchen_sink=rt_data.get('has_kitchen_sink', False),
+                has_microwave=rt_data.get('has_microwave', False),
+            )
+            db.add(new_room)
+            await db.flush() 
+
+            # ⚡️ ตรงนี้จะทำให้ room_images หายจาง เพราะถูกนำมาวนลูปใช้งาน
+            if room_images:
+                for file in room_images:
+                    # ตรวจสอบ Prefix เพื่อจับคู่รูปกับประเภทห้อง (เช่น room_0_...)
+                    if file.filename and file.filename.startswith(f"room_{index}_"):
+                        ext = os.path.splitext(file.filename)[1]
+                        new_filename = f"rt_{uuid.uuid4()}{ext}"
+                        file_path = os.path.join(UPLOAD_DIR, new_filename)
+                        
+                        content = await file.read()
+                        with open(file_path, "wb") as buffer:
+                            buffer.write(content)
+                        
+                        new_img = models.RoomTypeImage(
+                            filename=new_filename,
+                            room_type_id=new_room.id
+                        )
+                        db.add(new_img)
+
+        await db.commit()
+
+        # ⚡️ จัดการ Redis ต่อท้าย
+        cache_key = f"dorm_detail:{dorm_id}"
+        await rd.delete(cache_key)
+        await rd.publish("owner_updates", json.dumps({
+            "event": "room_types_updated",
+            "dorm_id": dorm_id,
+            "message": "เพิ่มประเภทห้องพักใหม่สำเร็จ"
+        }))
+
+        return {"message": "บันทึกสำเร็จและล้างแคชเรียบร้อย"}
+
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+
+
 # API ดึงหอพัก owner
 @app.get("/api/owner/my-dorms")
 async def get_my_dorms(
@@ -1750,6 +1880,34 @@ async def get_my_dorms(
     dorms = result.scalars().all()
     
     return dorms
+
+
+# API สำหรับดึงประเภทห้องพักของหอพักนั้นๆ (แยกออกมา)
+@app.get("/api/owner/dorms/{dorm_id}/room-types", response_model=List[schemas.RoomTypeResponse])
+async def get_dorm_room_types(
+    dorm_id: int,
+    db: AsyncSession = Depends(get_db),
+    payload: dict = Depends(owner_only)
+):
+    owner_id = payload.get("user_id")
+    
+    # 1. ตรวจสอบก่อนว่าหอนี้เป็นของ Owner คนนี้จริงไหม
+    dorm_check = await db.execute(
+        select(models.Dormitory).where(
+            models.Dormitory.id == dorm_id, 
+            models.Dormitory.owner_id == owner_id
+        )
+    )
+    if not dorm_check.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="ไม่มีสิทธิ์เข้าถึงข้อมูล")
+
+    # 2. ดึงข้อมูล RoomTypes พร้อมรูปภาพ (ใช้ selectinload สำหรับความสัมพันธ์)
+    stmt = select(models.RoomType)\
+        .options(selectinload(models.RoomType.room_images))\
+        .where(models.RoomType.dorm_id == dorm_id)
+    
+    result = await db.execute(stmt)
+    return result.scalars().all()   
 
 
 # API owner แก้ไขข้อมูลหอพัก (ก่อนแอดมินอนุมัติ)
@@ -1928,6 +2086,107 @@ async def update_dormitory(
     return final_res.scalar_one()
 
 
+# api แก้ไขห้องพัก
+@app.put("/api/owner/update-room-type/{room_type_id}")
+async def update_room_type(
+    room_type_id: int,
+    name: str = Form(...),
+    price: int = Form(...),
+    vacancy_count: int = Form(0),
+    description: str = Form(None),
+    # --- Boolean Flags ---
+    has_air_conditioner: bool = Form(False),
+    has_fan: bool = Form(False),
+    has_refrigerator: bool = Form(False),
+    has_tv: bool = Form(False),
+    has_water_heater: bool = Form(False),
+    has_balcony: bool = Form(False),
+    has_kitchen_sink: bool = Form(False),
+    has_microwave: bool = Form(False),
+    # --- Images ---
+    delete_image_ids: str = Form("[]"), 
+    images: List[UploadFile] = File(None),
+    db: AsyncSession = Depends(get_db),
+    rd = Depends(get_redis), # ⚡️ เพิ่ม Redis ตรงนี้
+    payload: dict = Depends(owner_only)
+):
+    # 1. ค้นหา RoomType และเช็คสิทธิ์
+    user_id = payload.get("user_id")
+    result = await db.execute(
+        select(models.RoomType)
+        .join(models.Dormitory)
+        .where(models.RoomType.id == room_type_id, models.Dormitory.owner_id == user_id)
+        .options(selectinload(models.RoomType.room_images))
+    )
+    db_room_type = result.scalar_one_or_none()
+    
+    if not db_room_type:
+        raise HTTPException(status_code=404, detail="ไม่พบประเภทห้องพัก หรือคุณไม่มีสิทธิ์แก้ไข")
+
+    dorm_id = db_room_type.dorm_id # เก็บไว้ใช้ล้างแคช
+
+    # 2. อัปเดตข้อมูล (แบบนี้ Editor จะไม่จาง แต่ถ้าชอบแบบเดิมก็ใช้ได้ครับ)
+    db_room_type.name = name
+    db_room_type.price = price
+    db_room_type.vacancy_count = vacancy_count
+    db_room_type.description = description
+    db_room_type.has_air_conditioner = has_air_conditioner
+    db_room_type.has_fan = has_fan
+    db_room_type.has_refrigerator = has_refrigerator
+    db_room_type.has_tv = has_tv
+    db_room_type.has_water_heater = has_water_heater
+    db_room_type.has_balcony = has_balcony
+    db_room_type.has_kitchen_sink = has_kitchen_sink
+    db_room_type.has_microwave = has_microwave
+
+    # 3. จัดการลบรูปภาพ
+    try:
+        target_ids = json.loads(delete_image_ids)
+        if target_ids:
+            images_to_delete = [img for img in db_room_type.room_images if img.id in target_ids]
+            for img in images_to_delete:
+                file_path = os.path.join(UPLOAD_DIR, img.filename)
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                await db.delete(img)
+    except Exception as e:
+        print(f"Error deleting room images: {e}")
+
+    # 4. เพิ่มรูปภาพใหม่
+    if images:
+        for file in images:
+            if file and file.filename:
+                ext = os.path.splitext(file.filename)[1]
+                new_fname = f"room_{uuid.uuid4()}{ext}"
+                content = await file.read()
+                with open(os.path.join(UPLOAD_DIR, new_fname), "wb") as f:
+                    f.write(content)
+                db.add(models.RoomTypeImage(filename=new_fname, room_type_id=db_room_type.id))
+
+    # 5. บันทึกข้อมูล
+    await db.commit()
+
+    # --- ⚡️ จัดการ Redis & Notifications เหมือน Admin ---
+    
+    # ล้างแคชหน้ารายละเอียดหอพัก และแคชหน้าแรก
+    await rd.delete(f"dorm_detail:{dorm_id}")
+    await rd.delete("public_verified_dorms")
+    
+    # ส่งสัญญาณแจ้งเตือนผ่าน WebSocket (Channel เดียวกับที่ Owner ฟังอยู่)
+    notification_data = {
+        "event": "room_type_updated",
+        "owner_id": user_id,
+        "data": {
+            "dorm_id": dorm_id,
+            "message": f"อัปเดตข้อมูลห้อง '{name}' เรียบร้อยแล้ว",
+            "type": "success"
+        }
+    }
+    await rd.publish("admin_notifications", json.dumps(notification_data))
+
+    return {"status": "success", "message": "อัปเดตประเภทห้องพักเรียบร้อยแล้ว"}
+
+
 # API ลบหอพัก
 @app.delete("/api/owner/delete-dorm/{dorm_id}")
 async def delete_dorm(
@@ -2088,7 +2347,10 @@ async def get_owner_bookings(
     # 1. ใช้ joinedload เพื่อดึงข้อมูล Dormitory มาพร้อมกับ Booking ใน Query เดียว
     stmt = select(models.DormBooking)\
         .join(models.Dormitory)\
-        .options(joinedload(models.DormBooking.dormitory))\
+        .options(
+            joinedload(models.DormBooking.dormitory),
+            joinedload(models.DormBooking.room_type)  # 🔥 โหลดข้อมูลประเภทห้องมาด้วย
+        )\
         .where(models.Dormitory.owner_id == owner_id)\
         .order_by(models.DormBooking.created_at.desc())
         
@@ -2105,7 +2367,9 @@ async def get_owner_bookings(
             "check_in_date": b.check_in_date,
             "remark": b.remark,
             "status": b.status,
-            "dorm_name": b.dormitory.name  # 🔥 ดึงชื่อหอพักจากความสัมพันธ์มาใส่ตรงนี้
+            "dorm_name": b.dormitory.name,  # 🔥 ดึงชื่อหอพักจากความสัมพันธ์มาใส่ตรงนี้
+            # 🔥 ดึงชื่อประเภทห้อง (เช็คก่อนว่ามีข้อมูลไหม เพราะเป็น Nullable)
+            "room_type_name": b.room_type.name if b.room_type else "ทั่วไป/ไม่ระบุ"
         })
         
     return output

@@ -30,6 +30,6 @@ class Owner(Base):
     is_approved = Column(Boolean, default=False) # เพิ่มสำหรับระบบอนุมัติ
     
     created_at = Column(DateTime, default=datetime.utcnow)
-    dorms = relationship("Dormitory", back_populates="owner")
+    # dorms = relationship("Dormitory", back_populates="owner")
 
     dormitories = relationship("Dormitory", back_populates="owner", cascade="all, delete-orphan")

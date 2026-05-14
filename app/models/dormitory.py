@@ -75,6 +75,9 @@ class Dormitory(Base):
     # เชื่อมโยงกับการจอง
     bookings = relationship("DormBooking", back_populates="dormitory", cascade="all, delete-orphan")
 
+    # เพิ่มความสัมพันธ์ไปยัง RoomType
+    room_types = relationship("RoomType", back_populates="dormitory", cascade="all, delete-orphan")
+
 
 # 🚨 เพิ่มคลาสนี้ต่อท้ายไฟล์ dormitory.py 🚨
 class DormitoryDraft(Base):
@@ -148,6 +151,9 @@ class DormBooking(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     dorm_id = Column(Integer, ForeignKey("dormitories.id", ondelete="CASCADE"))
+
+    # 🚨 เพิ่มบรรทัดนี้: เพื่อเชื่อมโยงว่าจองห้องประเภทไหน (เป็น Nullable ได้ กรณีจองรวมๆ)
+    room_type_id = Column(Integer, ForeignKey("room_types.id", ondelete="SET NULL"), nullable=True)
     
     # ข้อมูลผู้จอง
     guest_name = Column(String, nullable=False)
@@ -162,3 +168,45 @@ class DormBooking(Base):
 
     # เชื่อมกลับไปยังหอพัก
     dormitory = relationship("Dormitory", back_populates="bookings")
+
+    # 🚨 เพิ่มความสัมพันธ์ไปยัง RoomType
+    room_type = relationship("RoomType")
+
+
+class RoomType(Base):
+    __tablename__ = "room_types"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    price = Column(Integer, nullable=False)
+    vacancy_count = Column(Integer, default=0)
+    description = Column(Text, nullable=True)
+    
+    # 🚨 เราจะตัด image_filename (String) ออก แล้วใช้ relationship แทน
+    # image_filename = Column(String, nullable=True) <-- ลบหรือ Comment ไว้ก็ได้ครับ
+
+    has_air_conditioner = Column(Boolean, default=False)
+    has_fan = Column(Boolean, default=False)
+    has_refrigerator = Column(Boolean, default=False)
+    has_tv = Column(Boolean, default=False)
+    has_water_heater = Column(Boolean, default=False)
+    has_balcony = Column(Boolean, default=False)
+    has_kitchen_sink = Column(Boolean, default=False)
+    has_microwave = Column(Boolean, default=False)
+
+    dorm_id = Column(Integer, ForeignKey("dormitories.id", ondelete="CASCADE"))
+    dormitory = relationship("Dormitory", back_populates="room_types")
+
+    # 🚨 เพิ่มความสัมพันธ์ไปยังตารางรูปภาพใหม่
+    room_images = relationship("RoomTypeImage", back_populates="room_type", cascade="all, delete-orphan")
+
+# 🚨 เพิ่มคลาสใหม่สำหรับเก็บรูปภาพประเภทห้อง (รองรับหลายรูป)
+class RoomTypeImage(Base):
+    __tablename__ = "room_type_images"
+
+    id = Column(Integer, primary_key=True, index=True)
+    filename = Column(String, nullable=False)  # เก็บชื่อไฟล์รูปภาพ
+    
+    # เชื่อมโยงกับ RoomType
+    room_type_id = Column(Integer, ForeignKey("room_types.id", ondelete="CASCADE"))
+    room_type = relationship("RoomType", back_populates="room_images")

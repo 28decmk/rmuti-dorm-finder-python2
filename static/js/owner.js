@@ -1,7 +1,10 @@
-let selectedFiles = []; // ตัวแปรเก็บไฟล์รูปภาพ
-// ตัวแปรเก็บ ID หอพักที่กำลังแก้ไข (null หมายถึงกำลังเพิ่มใหม่)
+let selectedRoomFiles = [];      // เก็บไฟล์ภาพใหม่ที่จะอัปโหลด
+let deletedRoomImageIds = [];    // เก็บ ID รูปภาพเดิมที่จะลบ
+let currentEditingRoomId = null;
 let currentEditingDormId = null;
 
+let selectedFiles = []; // ตัวแปรเก็บไฟล์รูปภาพ
+// ตัวแปรเก็บ ID หอพักที่กำลังแก้ไข (null หมายถึงกำลังเพิ่มใหม่)
 // เพิ่มตัวแปรไว้ด้านบนสุดของไฟล์ owner.js เพื่อเก็บข้อมูลหอพักทั้งหมด
 let allDorms = [];
 
@@ -13,6 +16,12 @@ let myCurrentUserId = null;
 let notificationSocket = null;
 
 let allStatsData = null; // เก็บข้อมูลทั้งหมดไว้ที่นี่
+
+let currentRoomTypeImages = [];
+
+
+let roomViewImageList = [];
+let currentRoomImgIndex = 0;
 
 
 
@@ -319,6 +328,7 @@ function closeAddDormModal() {
     }
 }
 
+
 document.addEventListener('DOMContentLoaded', () => {
     loadMyDorms();
     loadOwnerProfile(); // สำหรับแสดงชื่อเจ้าของด้านบน
@@ -328,6 +338,552 @@ document.addEventListener('DOMContentLoaded', () => {
     // เชื่อมต่อ WS
     initOwnerWebSocket();
 });
+
+
+// ฟังก์ชันเปิด Modal และโหลดข้อมูลหอพักที่มีอยู่
+function openAddRoomTypeModal() {
+    const modal = document.getElementById('roomTypeModal');
+    const dormSelect = document.getElementById('room-type-dorm-select');
+    
+    // เติมข้อมูลใน Select จากหอพักที่ 'approved' เท่านั้น (ตัวแปร allDorms ที่คุณมีอยู่แล้ว)
+    const approvedDorms = allDorms.filter(d => d.verification_status === 'approved' || d.is_verified);
+    
+    dormSelect.innerHTML = approvedDorms.map(d => 
+        `<option value="${d.id}">${d.name}</option>`
+    ).join('');
+
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden'; // ป้องกันการสกอลหน้าเว็บด้านหลัง
+}
+
+function closeRoomTypeModal() {
+    document.getElementById('roomTypeModal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+// ฟังก์ชันเพิ่มแถวกรอกข้อมูลใหม่
+function addNewRoomRow() {
+    const container = document.getElementById('room-rows-container');
+    const roomId = Date.now(); 
+    const newRow = document.createElement('div');
+    
+    newRow.className = 'bg-slate-50 rounded-[2rem] p-6 border border-slate-100 mb-6 animate-fade-in relative group';
+    newRow.innerHTML = `
+        <button onclick="this.parentElement.remove()" class="absolute -top-2 -right-2 w-8 h-8 bg-white text-red-500 shadow-sm border border-red-100 rounded-full hover:bg-red-50 transition-all flex items-center justify-center z-10">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div class="md:col-span-4 space-y-4">
+                <div class="relative group/img">
+                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1 mb-1 block">รูปถ่ายประเภทห้อง (สูงสุด 5 รูป)</label>
+                    
+                    <div onclick="document.getElementById('img-${roomId}').click()" 
+                         class="min-h-[120px] bg-white border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 transition-all p-4">
+                        
+                        <input type="file" id="img-${roomId}" class="hidden" accept="image/*" multiple onchange="previewMultipleRoomImages(this, '${roomId}')">
+                        
+                        <div id="preview-container-${roomId}" class="grid grid-cols-3 gap-2 w-full">
+                            <div id="placeholder-${roomId}" class="col-span-3 text-center py-4">
+                                <i class="fas fa-images text-2xl text-slate-300 mb-1"></i>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase">คลิกเพื่อเพิ่มรูปภาพ (1-5 รูป)</p>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-[8px] text-slate-400 mt-2 ml-1 italic">* กด Ctrl หรือ Shift ค้างเพื่อเลือกหลายรูป</p>
+                </div>
+                
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1 mb-1 block">คำอธิบายห้องพัก</label>
+                    <textarea name="room_description" rows="2" placeholder="เช่น วิวสระว่ายน้ำ, เฟอร์นิเจอร์ไม้..." 
+                              class="w-full px-4 py-3 bg-white rounded-xl border-none text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"></textarea>
+                </div>
+            </div>
+
+            <div class="md:col-span-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                    <div class="md:col-span-1">
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">ชื่อประเภทห้อง</label>
+                        <input type="text" name="room_name" placeholder="ห้องแอร์ เตียงคู่" 
+                               class="w-full px-4 py-3 rounded-xl border-none bg-white text-sm font-bold focus:ring-2 focus:ring-indigo-500/20">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">ราคา (บาท/เดือน)</label>
+                        <input type="number" name="room_price" placeholder="4500" 
+                               class="w-full px-4 py-3 rounded-xl border-none bg-white text-sm font-bold focus:ring-2 focus:ring-indigo-500/20">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-slate-400 ml-1">ห้องว่าง</label>
+                        <input type="number" name="room_vacancy" placeholder="2" 
+                               class="w-full px-4 py-3 rounded-xl border-none bg-white text-sm font-bold focus:ring-2 focus:ring-indigo-500/20">
+                    </div>
+                </div>
+
+                <label class="text-[10px] font-black uppercase text-slate-400 ml-1 mb-2 block">สิ่งอำนวยความสะดวกในห้อง</label>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    ${['แอร์', 'พัดลม', 'ตู้เย็น', 'ทีวี', 'เครื่องทำน้ำอุ่น', 'ระเบียง', 'อ่างล้างจาน', 'ไมโครเวฟ'].map(item => `
+                        <label class="flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-100 cursor-pointer hover:bg-indigo-50/50 transition-all">
+                            <input type="checkbox" name="room_amenities_${roomId}" value="${item}" class="w-3 h-3 accent-indigo-600">
+                            <span class="text-[10px] font-bold text-slate-600">${item}</span>
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+    container.appendChild(newRow);
+}
+
+
+function previewMultipleRoomImages(input, roomId) {
+    const container = document.getElementById(`preview-container-${roomId}`);
+    const placeholder = document.getElementById(`placeholder-${roomId}`);
+    
+    // ตรวจสอบว่าเลือกเกิน 5 รูปไหม
+    if (input.files.length > 5) {
+        alert("เลือกได้สูงสุด 5 รูปต่อห้องครับ");
+        input.value = ""; // ล้างค่า
+        container.innerHTML = '';
+        container.appendChild(placeholder);
+        placeholder.classList.remove('hidden');
+        return;
+    }
+
+    // ล้าง Preview เก่า
+    container.innerHTML = '';
+    
+    if (input.files && input.files.length > 0) {
+        placeholder.classList.add('hidden');
+        
+        Array.from(input.files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imgDiv = document.createElement('div');
+                imgDiv.className = "aspect-square rounded-lg overflow-hidden border border-slate-200 shadow-sm";
+                imgDiv.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
+                container.appendChild(imgDiv);
+            }
+            reader.readAsDataURL(file);
+        });
+    } else {
+        container.appendChild(placeholder);
+        placeholder.classList.remove('hidden');
+    }
+}
+
+
+async function saveRoomTypes() {
+    const dormId = document.getElementById('room-type-dorm-select').value;
+    const container = document.getElementById('room-rows-container');
+    const rows = container.querySelectorAll('.bg-slate-50');
+    
+    const formData = new FormData();
+    const roomTypes = [];
+
+    rows.forEach((row, index) => {
+        const roomId = row.querySelector('input[type="file"]').id.replace('img-', '');
+        const amenities = Array.from(row.querySelectorAll(`input[name="room_amenities_${roomId}"]:checked`)).map(el => el.value);
+
+        // 1. เก็บข้อมูล Text
+        roomTypes.push({
+            name: row.querySelector('input[name="room_name"]').value,
+            price: parseInt(row.querySelector('input[name="room_price"]').value) || 0,
+            vacancy_count: parseInt(row.querySelector('input[name="room_vacancy"]').value) || 0,
+            description: row.querySelector('textarea[name="room_description"]').value,
+            has_air_conditioner: amenities.includes('แอร์'),
+            has_fan: amenities.includes('พัดลม'),
+            has_refrigerator: amenities.includes('ตู้เย็น'),
+            has_tv: amenities.includes('ทีวี'),
+            has_water_heater: amenities.includes('เครื่องทำน้ำอุ่น'),
+            has_balcony: amenities.includes('ระเบียง'),
+            has_kitchen_sink: amenities.includes('อ่างล้างจาน'),
+            has_microwave: amenities.includes('ไมโครเวฟ')
+        });
+
+        // 2. ดึงไฟล์รูปภาพ (รองรับหลายไฟล์)
+        const fileInput = document.getElementById(`img-${roomId}`);
+        if (fileInput.files.length > 0) {
+            // วนลูปไฟล์ที่เลือก (จำกัดสูงสุด 5 รูป)
+            Array.from(fileInput.files).forEach((file, fileIndex) => {
+                if (fileIndex < 5) {
+                    // 🚨 หัวใจสำคัญ: ตั้งชื่อไฟล์ใหม่เพื่อให้ Backend รู้ว่ารูปนี้เป็นของห้องที่ index เท่าไหร่
+                    const renamedFile = new File([file], `room_${index}_${file.name}`, { type: file.type });
+                    formData.append('room_images', renamedFile);
+                }
+            });
+        }
+    });
+
+    // 3. แนบ JSON string
+    formData.append('room_types_json', JSON.stringify(roomTypes));
+
+    try {
+        const response = await fetch(`/api/owner/dorms/${dormId}/room-types`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            alert("บันทึกข้อมูลประเภทห้องและรูปภาพเรียบร้อยแล้ว!"); 
+            closeRoomTypeModal();
+            location.reload();
+        } else {
+            const err = await response.json();
+            alert("เกิดข้อผิดพลาด: " + err.detail);
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้");
+    }
+}
+
+// ฟังก์ชันสำหรับพรีวิวรูปภาพของแต่ละแถว
+function previewRoomImage(input, roomId) {
+    const previewCtx = document.getElementById(`preview-ctx-${roomId}`);
+    const imgView = document.getElementById(`view-${roomId}`);
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            imgView.src = e.target.result;
+            imgView.classList.remove('hidden');
+            previewCtx.classList.add('hidden');
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+
+async function openRoomTypeView(roomTypeId, dormId) {
+    try {
+        // ✅ 0. เก็บ ID ไว้ใช้ตอนกดปุ่มดินสอ
+        currentEditingRoomId = roomTypeId;
+        currentEditingDormId = dormId;
+
+        // ดึงข้อมูลประเภทห้องจาก API
+        const response = await fetch(`/api/owner/dorms/${dormId}/room-types`);
+        const roomTypes = await response.json();
+        
+        // ค้นหาห้องที่กดดูจาก ID
+        const type = roomTypes.find(rt => rt.id === roomTypeId);
+        if (!type) return;
+
+        // 1. แสดงรูปภาพ
+        const imgContainer = document.getElementById('room-view-images');
+        if (type.room_images && type.room_images.length > 0) {
+            imgContainer.innerHTML = type.room_images.map(img => `
+                <div class="w-full h-full flex-shrink-0 snap-center">
+                    <img src="/static/uploads/dorms/${img.filename}" class="w-full h-full object-cover">
+                </div>
+            `).join('');
+        } else {
+            imgContainer.innerHTML = `
+                <div class="w-full h-full flex items-center justify-center bg-slate-50 text-slate-400">
+                    <div class="text-center">
+                        <i class="fas fa-image text-3xl mb-2 opacity-20"></i>
+                        <p class="text-xs font-bold">ไม่มีรูปภาพประกอบ</p>
+                    </div>
+                </div>`;
+        }
+
+        // 2. ข้อมูลพื้นฐาน
+        document.getElementById('room-view-name').innerText = type.name;
+        document.getElementById('room-view-price').innerText = `฿${type.price.toLocaleString()} / เดือน`;
+        document.getElementById('room-view-description').innerText = type.description || 'ไม่มีรายละเอียดเพิ่มเติมสำหรับประเภทห้องนี้';
+        
+        const vacancyEl = document.getElementById('room-view-vacancy');
+        if (type.vacancy_count > 0) {
+            vacancyEl.className = "px-4 py-2 rounded-2xl font-bold text-xs bg-green-50 text-green-600 border border-green-100";
+            vacancyEl.innerHTML = `<i class="fas fa-check-circle mr-1"></i> ว่าง ${type.vacancy_count} ห้อง`;
+        } else {
+            vacancyEl.className = "px-4 py-2 rounded-2xl font-bold text-xs bg-red-50 text-red-400 border border-red-100";
+            vacancyEl.innerHTML = `<i class="fas fa-times-circle mr-1"></i> ห้องเต็ม`;
+        }
+
+        // 3. สิ่งอำนวยความสะดวก
+        const amenitiesList = {
+            has_air_conditioner: 'แอร์',
+            has_fan: 'พัดลม',
+            has_refrigerator: 'ตู้เย็น',
+            has_tv: 'ทีวี',
+            has_water_heater: 'น้ำอุ่น',
+            has_balcony: 'ระเบียง',
+            has_kitchen_sink: 'ซิงค์ล้างจาน',
+            has_microwave: 'ไมโครเวฟ'
+        };
+
+        const amenContainer = document.getElementById('room-view-amenities');
+        amenContainer.innerHTML = Object.keys(amenitiesList).map(key => {
+            const hasItem = type[key];
+            return `
+                <div class="flex items-center gap-2 ${hasItem ? 'text-slate-700' : 'text-slate-300'}">
+                    <div class="w-6 h-6 flex items-center justify-center rounded-lg ${hasItem ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-50'}">
+                        <i class="fas ${hasItem ? 'fa-check text-[10px]' : 'fa-circle text-[6px] opacity-20'}"></i>
+                    </div>
+                    <span class="text-[13px] font-bold">${amenitiesList[key]}</span>
+                </div>
+            `;
+        }).join('');
+
+        // เปิด Modal
+        document.getElementById('roomTypeViewModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+
+    } catch (error) {
+        console.error("Error:", error);
+        alert("ไม่สามารถเปิดดูข้อมูลได้");
+    }
+}
+
+
+function handleEditFromView() {
+    if (!currentEditingRoomId || !currentEditingDormId) return;
+
+    // 1. ปิด Modal ดูรายละเอียดก่อน
+    closeRoomTypeViewModal();
+
+    // 2. เรียกฟังก์ชันเปิดหน้าแก้ไขประเภทห้องของคุณ (ใส่ชื่อฟังก์ชันแก้ไขจริงของคุณที่นี่)
+    // ตัวอย่างเช่น: openEditRoomType(currentEditingRoomId, currentEditingDormId);
+    if (typeof openEditRoomType === "function") {
+        openEditRoomType(currentEditingRoomId, currentEditingDormId);
+    } else {
+        alert("ระบบกำลังเตรียมหน้าแก้ไข... (เชื่อมต่อฟังก์ชัน openEditRoomType)");
+    }
+}
+
+
+async function openEditRoomType(roomTypeId, dormId) {
+    try {
+        const response = await fetch(`/api/owner/dorms/${dormId}/room-types`);
+        if (!response.ok) throw new Error("ไม่สามารถดึงข้อมูลห้องพักได้");
+        
+        const roomTypes = await response.json();
+        const type = roomTypes.find(rt => rt.id === roomTypeId);
+        
+        if (!type) {
+            alert("ไม่พบข้อมูลประเภทห้องพัก");
+            return;
+        }
+
+        currentEditingRoomId = roomTypeId;
+        currentEditingDormId = dormId;
+        selectedRoomFiles = []; 
+        deletedRoomImageIds = [];
+        
+        const previewContainer = document.getElementById('new-room-images-preview');
+        if (previewContainer) previewContainer.innerHTML = '';
+
+        // --- 3. นำข้อมูลใส่ Form (ปรับปรุงให้ปลอดภัย) ---
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.value = val;
+            else console.warn(`⚠️ หา ID '${id}' ไม่พบใน HTML`);
+        };
+
+        setVal('edit-room-name', type.name);
+        setVal('edit-room-price', type.price);
+        setVal('edit-room-vacancy', type.vacancy_count);
+        setVal('edit-room-description', type.description || '');
+
+        // --- 4. จัดการ Amenities (ปรับปรุงให้ปลอดภัย) ---
+        const amenities = [
+            'has_air_conditioner', 'has_fan', 'has_refrigerator', 'has_tv',
+            'has_water_heater', 'has_balcony', 'has_kitchen_sink', 'has_microwave'
+        ];
+        amenities.forEach(key => {
+            const id = `edit-${key.replace(/_/g, '-')}`;
+            const checkbox = document.getElementById(id);
+            if (checkbox) {
+                checkbox.checked = type[key] || false;
+            } else {
+                console.warn(`⚠️ หา Checkbox ID '${id}' ไม่พบใน HTML`);
+            }
+        });
+
+        renderExistingRoomImages(type.room_images || []);
+
+        const modal = document.getElementById('editRoomTypeModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+    } catch (error) {
+        console.error("Error Details:", error); // ดู Error เต็มๆ ใน Console
+        alert("เกิดข้อผิดพลาด: " + error.message);
+    }
+}
+
+
+function handleRoomFileSelect(event) {
+    const files = Array.from(event.target.files);
+    const previewContainer = document.getElementById('new-room-images-preview');
+
+    files.forEach(file => {
+        selectedRoomFiles.push(file);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const div = document.createElement('div');
+            div.className = "relative w-20 h-20 animate-in zoom-in";
+            div.innerHTML = `
+                <img src="${e.target.result}" class="w-full h-full object-cover rounded-2xl shadow-sm border-2 border-indigo-500">
+                <button type="button" onclick="removeSelectedRoomFile(this, ${selectedRoomFiles.length - 1})" 
+                    class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-[10px] shadow-md">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            previewContainer.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// ฟังก์ชันลบรูปที่เพิ่งเลือก (ก่อนกดยืนยัน)
+function removeSelectedRoomFile(element, index) {
+    selectedRoomFiles.splice(index, 1);
+    element.parentElement.remove();
+}
+
+
+// แสดงรูปเดิมที่มีอยู่ในฐานข้อมูล
+function renderExistingRoomImages(images) {
+    const container = document.getElementById('edit-room-images-container');
+    if (!container) return;
+
+    container.innerHTML = images.map(img => `
+        <div class="relative w-20 h-20 group" id="old-room-img-${img.id}">
+            <img src="/static/uploads/dorms/${img.filename}?t=${new Date().getTime()}" 
+                 class="w-full h-full object-cover rounded-2xl border border-slate-200">
+            
+            <button type="button" onclick="markRoomImageForDeletion(${img.id})" 
+                class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-[10px] shadow-md hover:bg-red-600 transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `).join('');
+}
+
+
+// เมื่อกดลบรูปเดิม
+function markRoomImageForDeletion(imageId) {
+    if (!deletedRoomImageIds.includes(imageId)) {
+        deletedRoomImageIds.push(imageId);
+    }
+    const el = document.getElementById(`old-room-img-${imageId}`);
+    if (el) el.classList.add('hidden'); // ซ่อนรูปออกจาก UI
+}
+
+
+async function submitEditRoomType(event) {
+    event.preventDefault();
+    
+    // 1. ดึง Element มาเช็คก่อนว่ามีอยู่จริงไหม
+    const elName = document.getElementById('edit-room-name');
+    const elPrice = document.getElementById('edit-room-price');
+    const elVacancy = document.getElementById('edit-room-vacancy');
+    const elDesc = document.getElementById('edit-room-description');
+
+    if (!elName) {
+        alert("หาช่องกรอกชื่อไม่เจอในระบบ (ID: edit-room-name)");
+        return;
+    }
+
+    const submitBtn = event.target.querySelector("button[type='submit']");
+    const originalText = submitBtn.innerHTML;
+    
+    const formData = new FormData();
+    
+    // 2. Append ข้อมูลพื้นฐาน
+    formData.append('name', elName.value); 
+    formData.append('price', parseInt(elPrice.value) || 0);
+    formData.append('vacancy_count', parseInt(elVacancy.value) || 0);
+    formData.append('description', elDesc ? elDesc.value : "");
+
+    // --- Amenities ---
+    const amenities = ['has_air_conditioner', 'has_fan', 'has_refrigerator', 'has_tv', 'has_water_heater', 'has_balcony', 'has_kitchen_sink', 'has_microwave'];
+    amenities.forEach(key => {
+        const id = `edit-${key.replace(/_/g, '-')}`;
+        const cb = document.getElementById(id);
+        formData.append(key, cb ? cb.checked : false);
+    });
+
+    // --- Images (ปรับปรุง: ตัด window. ออกเพื่อใช้ตัวแปร Global) ---
+    if (selectedRoomFiles && selectedRoomFiles.length > 0) {
+        selectedRoomFiles.forEach(file => {
+            formData.append('images', file);
+        });
+    }
+    
+    // --- Delete Images (ปรับปรุง: ตัด window. ออก) ---
+    formData.append('delete_image_ids', JSON.stringify(deletedRoomImageIds || []));
+
+    // ******************************************
+    // 🚀 ส่วน DEBUG UPLOAD (เอาไว้เช็คก่อนส่ง)
+    // ******************************************
+    console.log("--- DEBUG UPLOAD ---");
+    console.log("Current ID:", currentEditingRoomId);
+    console.log("Files in Array:", selectedRoomFiles.length);
+    for (let pair of formData.entries()) {
+        console.log(pair[0] + ': ', pair[1]);
+    }
+    // ******************************************
+
+    try {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = "กำลังบันทึก...";
+
+        const response = await fetch(`/api/owner/update-room-type/${currentEditingRoomId}`, {
+            method: 'PUT',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert("อัปเดตข้อมูลเรียบร้อย"); 
+            
+            // ✅ ล้างค่าทุกอย่างหลังจากสำเร็จ
+            selectedRoomFiles = []; 
+            deletedRoomImageIds = [];
+            const previewContainer = document.getElementById('new-room-images-preview');
+            if (previewContainer) previewContainer.innerHTML = ''; 
+            
+            closeEditRoomTypeModal();
+            await loadMyDorms(); // รีโหลดหน้าจอหลัก
+        } else {
+            console.error("Detail:", result.detail);
+            alert("บันทึกไม่สำเร็จ: " + (result.detail[0]?.msg || "ข้อมูลไม่ครบถ้วน"));
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("เกิดข้อผิดพลาดในการอัปเดต");
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    }
+}
+
+
+function closeRoomTypeViewModal() {
+    document.getElementById('roomTypeViewModal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+function closeEditRoomTypeModal() {
+    const modal = document.getElementById('editRoomTypeModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+    document.body.style.overflow = 'auto'; // คืนค่าการเลื่อนหน้าจอ
+    
+    // Cleanup State
+    selectedRoomFiles = [];
+    deletedRoomImageIds = [];
+    currentEditingRoomId = null;
+    
+    const previewContainer = document.getElementById('new-room-images-preview');
+    if (previewContainer) previewContainer.innerHTML = '';
+}
 
 
 async function loadMyDorms() {
@@ -341,7 +897,7 @@ async function loadMyDorms() {
         if (!response.ok) throw new Error('Failed to fetch');
 
         const dorms = await response.json();
-        allDorms = dorms; 
+        allDorms = dorms;
 
         if (dorms.length === 0) {
             container.innerHTML = `
@@ -358,131 +914,59 @@ async function loadMyDorms() {
             const isRejected = dorm.verification_status === 'rejected';
             const isPendingNew = dorm.verification_status === 'pending';
 
-            // --- 🚨 ส่วนแก้ไข: Logic การเลือกรูปภาพเพื่อแก้ปัญหา 404 🚨 ---
+            // --- Logic การเลือกรูปภาพหอพัก ---
             let imageUrl = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=400';
-
             if (isPendingUpdate && dorm.draft) {
-                // กรณีรออนุมัติการแก้ไข: เช็คว่ามีรูปใหม่ใน draft ไหม
                 try {
                     const draftData = typeof dorm.draft === 'string' ? JSON.parse(dorm.draft) : dorm.draft;
-                    const draftImages = typeof draftData.new_images_json === 'string' ? 
-                                        JSON.parse(draftData.new_images_json) : draftData.new_images_json;
-
-                    if (draftImages && draftImages.length > 0) {
-                        // ใช้รูปแรกจาก Draft (ที่มี prefix draft_ ตาม main.py)
-                        imageUrl = `/static/uploads/dorms/${draftImages[0]}`;
-                    } else if (dorm.images && dorm.images.length > 0) {
-                        // ถ้าไม่มีรูปใหม่ใน Draft ให้ใช้รูปเดิมที่มีอยู่แล้ว
-                        imageUrl = `/static/uploads/dorms/${dorm.images[0].filename}`;
-                    }
+                    const draftImages = typeof draftData.new_images_json === 'string' ? JSON.parse(draftData.new_images_json) : draftData.new_images_json;
+                    if (draftImages && draftImages.length > 0) imageUrl = `/static/uploads/dorms/${draftImages[0]}`;
+                    else if (dorm.images && dorm.images.length > 0) imageUrl = `/static/uploads/dorms/${dorm.images[0].filename}`;
                 } catch (e) { console.error("Draft image error:", e); }
             } else if (dorm.images && dorm.images.length > 0) {
-                // กรณีปกติ หรือ รออนุมัติครั้งแรก: ใช้รูปจากตาราง DormImage
                 imageUrl = `/static/uploads/dorms/${dorm.images[0].filename}`;
             }
 
-            // --- ส่วนแสดงสถานะ Badge ---
+            // --- ส่วนแสดงสถานะ Badge & Action Buttons ---
             let statusBadge = '';
             let actionButtons = '';
 
             if (isPendingUpdate) {
-                // กรณี: ขอแก้ไขข้อมูล (มีหอเดิมอยู่แล้ว แต่ส่ง Draft ใหม่ไป)
-                statusBadge = `
-                    <span class="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-full border border-blue-100 animate-pulse flex items-center gap-1">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                        รออนุมัติการแก้ไข
-                    </span>`;
+                statusBadge = `<span class="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-full border border-blue-100 animate-pulse flex items-center gap-1">รออนุมัติการแก้ไข</span>`;
                 actionButtons = `<span class="text-xs text-slate-400 italic mr-2">แอดมินกำลังตรวจ...</span>`;
-
             } else if (isPendingNew) {
-                // กรณี: ลงทะเบียนหอพักใหม่ครั้งแรก
-                statusBadge = `
-                    <span class="px-3 py-1 bg-amber-50 text-amber-600 text-xs font-bold rounded-full border border-amber-100 animate-pulse flex items-center gap-1">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        รออนุมัติหอใหม่
-                    </span>`;
-                // 🔥 เพิ่มรูปดินสอและถังขยะตรงนี้
-                actionButtons = `
-                    <button onclick="editDorm(${dorm.id})" class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="แก้ไขข้อมูลที่รออนุมัติ">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                    </button>
-                    <button onclick="deleteDorm(${dorm.id}, true)" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" title="ยกเลิกการลงทะเบียน">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>`;
-
+                statusBadge = `<span class="px-3 py-1 bg-amber-50 text-amber-600 text-xs font-bold rounded-full border border-amber-100 animate-pulse">รออนุมัติหอใหม่</span>`;
+                actionButtons = `<button onclick="editDorm(${dorm.id})" class="p-2 text-slate-400 hover:text-indigo-600 rounded-xl"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>`;
             } else if (isApproved) {
-                // กรณี: อนุมัติแล้ว (แสดงปุ่มแก้ไข/ลบปกติ)
-                statusBadge = `<span class="px-3 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-full border border-green-100 uppercase tracking-wider">อนุมัติแล้ว</span>`;
-                actionButtons = `
-                    <button onclick="editDorm(${dorm.id})" class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                    </button>
-                    <button onclick="deleteDorm(${dorm.id}, true)" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>`;
-
+                statusBadge = `<span class="px-3 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-full border border-green-100">อนุมัติแล้ว</span>`;
+                actionButtons = `<button onclick="editDorm(${dorm.id})" class="p-2 text-slate-400 hover:text-indigo-600 rounded-xl"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>`;
             } else if (isRejected) {
-                // กรณี: ถูกปฏิเสธ (แสดง Badge แดง และเหตุผล)
-                statusBadge = `<span class="px-3 py-1 bg-red-50 text-red-600 text-xs font-bold rounded-full border border-red-100 uppercase tracking-wider">ไม่ผ่านการอนุมัติ</span>`;
-                actionButtons = `
-                    <button onclick="editDorm(${dorm.id})" class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2.25 2.25 0 113.182 3.182L12 10.364l-3 1 1-3 9.586-9.586z"/></svg>
-                    </button>
-                    
-                    
-                    <button onclick="deleteDorm(${dorm.id}, true)" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" title="ลบรายการนี้">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                    </button>`;
+                statusBadge = `<span class="px-3 py-1 bg-red-50 text-red-600 text-xs font-bold rounded-full border border-red-100">ไม่ผ่านการอนุมัติ</span>`;
             }
 
             return `
-                <div class="bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm flex flex-col md:flex-row gap-8 hover:shadow-md transition-all">
-                    <img src="${imageUrl}" 
-                        onerror="this.src='https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=400'"
-                        class="w-full md:w-48 h-48 rounded-3xl object-cover shadow-inner bg-slate-100" 
-                        alt="${dorm.name}">
+                <div class="bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm flex flex-col md:flex-row gap-8 hover:shadow-md transition-all mb-6">
+                    <img src="${imageUrl}" onerror="this.src='https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=400'"
+                         class="w-full md:w-48 h-48 rounded-3xl object-cover shadow-inner bg-slate-100">
                     
                     <div class="flex-1">
                         <div class="flex justify-between items-start">
                             ${statusBadge}
-                            <div class="flex items-center gap-2">
-                                ${actionButtons}
-                            </div>
+                            <div class="flex items-center gap-2">${actionButtons}</div>
                         </div>
 
                         <h3 class="text-2xl font-bold text-slate-900 mt-2">${dorm.name}</h3>
                         
-                        ${isRejected ? `
-                            <div class="mt-3 p-4 bg-red-50 border border-red-100 rounded-2xl flex flex-col gap-3">
-                                <div class="flex items-start gap-3">
-                                    <svg class="w-5 h-5 text-red-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <div>
-                                        <p class="text-sm font-bold text-red-700">เหตุผลที่ไม่ผ่านการอนุมัติ:</p>
-                                        <p class="text-sm text-red-600">${dorm.reject_reason || 'กรุณาตรวจสอบข้อมูลอีกครั้ง'}</p>
-                                    </div>
-                                </div>
-                                <button onclick="editDorm(${dorm.id})" 
-                                    class="w-full flex items-center justify-center gap-2 py-2.5 bg-white border border-red-200 text-red-600 rounded-xl text-sm font-bold hover:bg-red-100 transition-all shadow-sm active:scale-95">
-                                    แก้ไขข้อมูลและส่งให้ตรวจสอบใหม่
-                                </button>
+                        <div class="mt-4" id="room-types-display-${dorm.id}">
+                            <div class="animate-pulse flex gap-2">
+                                <div class="h-6 w-20 bg-slate-100 rounded-full"></div>
+                                <div class="h-6 w-20 bg-slate-100 rounded-full"></div>
                             </div>
-                        ` : ''}
-
-                        <div class="flex items-center gap-2 text-slate-500 text-sm mt-1">
-                            <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            </svg>
-                            ห่างจาก มหาวิทยาลัย ${dorm.distance_to_rmuti || '-'}
                         </div>
-                        
+
                         <div class="grid grid-cols-2 gap-4 mt-6">
                             <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                <p class="text-[10px] uppercase font-black text-slate-400 tracking-widest">สถานะห้องว่าง</p>
+                                <p class="text-[10px] uppercase font-black text-slate-400 tracking-widest">สถานะห้องว่างรวม</p>
                                 <p class="text-lg font-bold ${dorm.vacancy_count > 0 ? 'text-indigo-600' : 'text-slate-800'} mt-1">
                                     ${dorm.vacancy_count > 0 ? `ว่าง ${dorm.vacancy_count} ห้อง` : 'เต็มแล้ว'}
                                 </p>
@@ -497,11 +981,91 @@ async function loadMyDorms() {
             `;
         }).join('');
 
+        // --- 🚨 สั่งโหลดประเภทห้องพักของทุกหอพักที่แสดง ---
+        dorms.forEach(dorm => {
+            fetchRoomTypesForDorm(dorm.id);
+        });
+
+        // ตรวจสอบปุ่ม "จัดการประเภทห้องพัก" ด้านบน
+        const hasApprovedDorm = dorms.some(dorm => dorm.verification_status === 'approved' || dorm.is_verified === true);
+        const manageBtn = document.getElementById('btn-manage-room-types');
+        if (manageBtn) {
+            if (hasApprovedDorm) { manageBtn.classList.remove('hidden'); manageBtn.classList.add('flex'); }
+            else { manageBtn.classList.add('hidden'); }
+        }
+
     } catch (error) {
         console.error('Error:', error);
         container.innerHTML = `<div class="p-8 text-center text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>`;
     }
 }
+
+
+// api ดึงประเภทห้องพักมาแสดง 
+async function fetchRoomTypesForDorm(dormId) {
+    const displayContainer = document.getElementById(`room-types-display-${dormId}`);
+    if (!displayContainer) return;
+
+    try {
+        const response = await fetch(`/api/owner/dorms/${dormId}/room-types`);
+        if (!response.ok) throw new Error('Failed to fetch room types');
+        
+        const roomTypes = await response.json();
+
+        if (!roomTypes || roomTypes.length === 0) {
+            displayContainer.innerHTML = `<p class="text-[10px] text-slate-400 bg-slate-50 w-fit px-3 py-1 rounded-full">ยังไม่มีข้อมูลประเภทห้องพัก</p>`;
+            return;
+        }
+
+        displayContainer.innerHTML = `
+            <div class="flex flex-col gap-3">
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-tight">ประเภทห้องพักที่เปิดบริการ:</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    ${roomTypes.map(type => {
+                        // ✅ แก้ไขจุดนี้: เติม ?t=... เพื่อให้ Browser โหลดรูปใหม่เสมอหลังจากแก้ไข
+                        const roomImg = (type.room_images && type.room_images.length > 0)
+                            ? `/static/uploads/dorms/${type.room_images[0].filename}?t=${new Date().getTime()}`
+                            : 'https://images.unsplash.com/photo-1522770179533-24471fcdba45?w=200';
+
+                        return `
+                        <div onclick="openRoomTypeView(${type.id}, ${dormId})" 
+                            class="relative flex items-center gap-3 p-2 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer group">
+                            
+                            <button type="button" 
+                                    onclick="event.stopPropagation(); openEditRoomType(${type.id}, ${dormId})" 
+                                    class="absolute -top-1 -right-1 bg-amber-500 text-white rounded-full p-1.5 hover:bg-amber-600 transition-colors shadow-sm opacity-0 group-hover:opacity-100 z-10">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+
+                            <img src="${roomImg}" class="w-10 h-10 rounded-xl object-cover bg-slate-50 group-hover:scale-105 transition-transform">
+                            
+                            <div class="min-w-0 flex-1">
+                                <h4 class="text-[12px] font-bold text-slate-800 truncate group-hover:text-indigo-600 pr-4">${type.name}</h4>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-bold text-indigo-600">฿${type.price.toLocaleString()}</span>
+                                    <span class="text-[10px] ${type.vacancy_count > 0 ? 'text-green-500' : 'text-red-400'}">
+                                        ● ${type.vacancy_count > 0 ? `ว่าง ${type.vacancy_count}` : 'เต็ม'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <i class="fas fa-chevron-right text-[10px] text-slate-300 group-hover:text-indigo-400 mr-1"></i>
+                        </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+
+    } catch (error) {
+        console.error(`Error loading room types for dorm ${dormId}:`, error);
+        displayContainer.innerHTML = `<p class="text-[10px] text-red-400">โหลดข้อมูลห้องพักไม่สำเร็จ</p>`;
+    }
+}
+
+
 
 
 // ฟังก์ชันดึงชื่อโปรไฟล์ (จาก Session) มาแสดง
@@ -971,13 +1535,19 @@ function renderBookings(bookings) {
 
         return `
         <div class="group bg-white p-7 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col h-full">
-            <div class="relative flex-1"> <div class="flex justify-between items-start mb-6">
+            <div class="relative flex-1"> 
+                <div class="flex justify-between items-start mb-6">
                     <div>
                         <span class="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[9px] font-black uppercase mb-2 inline-block">
                             #BK-${b.id.toString().padStart(4, '0')}
                         </span>
                         <h5 class="font-extrabold text-xl text-slate-900 leading-tight">${b.guest_name}</h5>
-                        <p class="text-xs text-indigo-500 font-bold mt-1 uppercase tracking-wider">${b.dorm_name}</p>
+                        
+                        <div class="flex flex-wrap items-center gap-2 mt-1">
+                            <p class="text-[10px] text-indigo-500 font-bold uppercase tracking-wider">${b.dorm_name}</p>
+                            <span class="text-[10px] text-slate-300">|</span>
+                            <p class="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">ประเภท: ${b.room_type_name}</p>
+                        </div>
                     </div>
                     <span class="px-3 py-1.5 ${statusConfig.class} rounded-xl text-[10px] font-black uppercase border ${statusConfig.border}">
                         ${statusConfig.label}

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,28 +10,45 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
-        body { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; }
-        .glass-nav { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        body {
+            font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+        }
+        
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
         /* สไตล์เสริมสำหรับการโหลดข้อมูล */
+        
         .loading-shimmer {
             background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
             background-size: 200% 100%;
             animation: shimmer 1.5s infinite;
         }
-        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
+        
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+        
         html {
             scroll-behavior: smooth;
         }
-
         /* แถม: เนื่องจาก Navbar ของคุณเป็นแบบ sticky (ติดขอบบน) 
         เราควรเผื่อระยะด้านบนไว้หน่อยเพื่อไม่ให้ Navbar ไปทับหัวข้อเวลาเลื่อนลงมา */
+        
         #popular-dorms {
-            scroll-margin-top: 100px; /* ปรับค่าตามความสูงของ Navbar คุณ */
+            scroll-margin-top: 100px;
+            /* ปรับค่าตามความสูงของ Navbar คุณ */
         }
-
     </style>
 </head>
+
 <body class="bg-[#f8fafc] text-slate-900 antialiased">
 
     <nav class="glass-nav sticky top-0 z-50 border-b border-slate-200/60">
@@ -63,7 +81,7 @@
                 ระบบฐานข้อมูลหอพักบริเวณ <br>
                 <span class="bg-clip-text text-transparent bg-gradient-to-r from-[#003399] to-[#FF6600]">มหาวิทยาลัยราชมงคลอีสานวิทยาเขตขอนแก่น</span>
             </h1>
-            
+
             <div class="mt-10 max-w-2xl mx-auto flex gap-3 items-center">
                 <div class="flex-1 flex p-2 bg-white rounded-2xl shadow-2xl shadow-slate-200 border border-slate-100">
                     <input type="text" id="search-input" placeholder="ระบุชื่อหอพัก หรือทำเล..." class="w-full px-4 py-3 bg-transparent outline-none text-slate-600">
@@ -71,8 +89,7 @@
                         ค้นหา
                     </button>
                 </div>
-                <button onclick="toggleFilterSection()" 
-                    class="flex items-center gap-2 px-6 py-3 bg-white border border-slate-100 rounded-2xl shadow-xl text-slate-600 hover:text-[#003399] hover:border-[#003399]/20 transition-all active:scale-95 group">
+                <button onclick="toggleFilterSection()" class="flex items-center gap-2 px-6 py-3 bg-white border border-slate-100 rounded-2xl shadow-xl text-slate-600 hover:text-[#003399] hover:border-[#003399]/20 transition-all active:scale-95 group">
                     
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 group-hover:text-[#003399] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
@@ -86,7 +103,7 @@
 
             <section id="filter-section" class="max-w-5xl mx-auto mt-6 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-2xl hidden animate-in slide-in-from-top-4 duration-300">
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-10">
-                    
+
                     <div class="md:col-span-5 space-y-8 border-r border-slate-50 pr-0 md:pr-10">
                         <div class="grid grid-cols-2 gap-4">
                             <div class="space-y-2">
@@ -115,9 +132,7 @@
                                 <span id="distance-display" class="text-sm font-black text-[#003399]">ทั้งหมด</span>
                             </div>
                             <div class="px-2">
-                                <input type="range" id="filter-distance" min="0" max="5000" step="100" value="5000" 
-                                    oninput="updateDistanceDisplay(this.value)" onchange="applyFilters()"
-                                    class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-[#003399]">
+                                <input type="range" id="filter-distance" min="0" max="5000" step="100" value="5000" oninput="updateDistanceDisplay(this.value)" onchange="applyFilters()" class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-[#003399]">
                                 <div class="flex justify-between mt-3 text-[10px] font-bold text-slate-400">
                                     <span>0 ม.</span>
                                     <span>2.5 กม.</span>
@@ -129,7 +144,7 @@
 
                     <div class="md:col-span-7 space-y-4">
                         <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">สิ่งอำนวยความสะดวก</label>
-                        
+
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-y-3 gap-x-2">
                             <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
                                 <input type="checkbox" name="amenity" value="has_wifi" onchange="applyFilters()" 
@@ -287,12 +302,21 @@
     </div>
 
     <div id="lightboxModal" class="fixed inset-0 z-[200] hidden bg-black/95 flex flex-col items-center justify-center p-4">
-        <button onclick="closeLightbox()" class="absolute top-6 right-6 text-white hover:text-[#FF6600] transition-colors"><svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button>
+        <button onclick="closeLightbox()" class="absolute top-6 right-6 text-white hover:text-indigo-400 transition-colors">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+        
         <div class="relative w-full max-w-5xl h-[80vh] flex items-center justify-center">
-            <img id="lightboxImg" src="" class="max-w-full max-h-full object-contain">
-            <button onclick="prevImage()" class="absolute left-0 text-white p-4 hover:text-[#FF6600] transition-colors"><svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg></button>
-            <button onclick="nextImage()" class="absolute right-0 text-white p-4 hover:text-[#FF6600] transition-colors"><svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+            <img id="lightboxImg" src="" class="max-w-full max-h-full object-contain transition-all duration-200 scale-95">
+            
+            <button onclick="prevImage()" class="absolute left-0 text-white p-4 hover:text-indigo-400">
+                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <button onclick="nextImage()" class="absolute right-0 text-white p-4 hover:text-indigo-400">
+                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+            </button>
         </div>
+        
         <div id="lightboxCaption" class="mt-6 text-white/80 font-medium bg-white/10 px-6 py-2 rounded-full border border-white/20"></div>
     </div>
 
@@ -308,27 +332,27 @@
             </div>
 
             <form id="bookingForm" class="p-8 space-y-5">
-                <input type="hidden" id="booking-dorm-id">
-                
+                <input type="hidden" id="booking-dorm-id" name="dorm_id">
+
                 <div>
                     <label class="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">ชื่อ-นามสกุล ผู้จอง</label>
-                    <input type="text" required class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-[#003399] outline-none transition-all" placeholder="นายสมชาย ใจดี">
+                    <input type="text" id="booking-guest-name" required class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-[#003399] outline-none transition-all" placeholder="นายสมชาย ใจดี">
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">เบอร์โทรศัพท์</label>
-                        <input type="tel" required class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-[#003399] outline-none transition-all" placeholder="08x-xxx-xxxx">
+                        <input type="tel" id="booking-guest-phone" required class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-[#003399] outline-none transition-all" placeholder="08x-xxx-xxxx">
                     </div>
                     <div>
                         <label class="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">วันที่เข้าอยู่</label>
-                        <input type="date" required class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-[#003399] outline-none transition-all">
+                        <input type="date" id="booking-check-in-date" required class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-[#003399] outline-none transition-all">
                     </div>
                 </div>
 
                 <div>
                     <label class="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">หมายเหตุ (ถ้ามี)</label>
-                    <textarea class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-[#003399] outline-none transition-all h-24" placeholder="เช่น ขอห้องชั้น 2, เลี้ยงสัตว์ ฯลฯ"></textarea>
+                    <textarea id="booking-remark" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-[#003399] outline-none transition-all h-24" placeholder="เช่น ขอห้องชั้น 2, เลี้ยงสัตว์ ฯลฯ"></textarea>
                 </div>
 
                 <div class="pt-4">
@@ -346,7 +370,7 @@
         <div class="fixed inset-0 bg-slate-950/95 backdrop-blur-2xl"></div>
 
         <div class="relative min-h-screen flex items-center justify-center p-6 md:p-12">
-            
+
             <button onclick="proceedToBookingForm()" class="absolute top-8 right-8 md:top-12 md:right-12 z-50 bg-orange-500 text-white p-5 rounded-full hover:scale-110 hover:rotate-90 transition-all duration-500 shadow-[0_0_40px_rgba(249,115,22,0.4)] group">
                 <svg class="w-8 h-8 group-hover:scale-125 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/>
@@ -354,27 +378,24 @@
             </button>
 
             <div class="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-                
+
                 <div class="lg:col-span-7 relative group">
                     <div class="absolute -inset-4 border border-white/10 rounded-[4rem] -z-10 group-hover:inset-0 transition-all duration-700"></div>
-                    
+
                     <div class="rounded-[3.5rem] overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.5)] border-[12px] border-white/5 aspect-[4/5] lg:aspect-auto lg:h-[700px]">
-                        <img id="intro-dorm-image" 
-                            src="https://images.unsplash.com/photo-1555854817-5b2738f751a0?q=80&w=2070&auto=format&fit=crop" 
-                            class="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000">
+                        <img id="intro-dorm-image" src="https://images.unsplash.com/photo-1555854817-5b2738f751a0?q=80&w=2070&auto=format&fit=crop" class="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000">
                     </div>
                 </div>
-                
+
                 <div class="lg:col-span-5 text-white space-y-8">
                     <div class="space-y-4">
                         <span class="inline-block px-5 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-xs font-black uppercase tracking-[0.3em] text-orange-400">
                             Premium Living
                         </span>
-                        
+
                         <h1 class="text-7xl md:text-8xl xl:text-9xl font-black leading-[0.85] tracking-tighter">
                             THE<br>
-                            <span class="text-orange-500">BEST</span><br>
-                            CHOICE.
+                            <span class="text-orange-500">BEST</span><br> CHOICE.
                         </h1>
                     </div>
 
@@ -382,7 +403,7 @@
                         <p class="text-xl md:text-2xl text-slate-400 font-medium leading-relaxed">
                             สัมผัสประสบการณ์การพักผ่อนระดับพรีเมียมในสังคมคุณภาพที่เราคัดสรรมาเพื่อคุณโดยเฉพาะ
                         </p>
-                        
+
                         <div class="flex items-center gap-6">
                             <div class="h-[2px] w-16 bg-orange-500"></div>
                             <p class="text-sm font-bold text-white uppercase tracking-widest">
@@ -410,8 +431,60 @@
         </div>
     </div>
 
+
+    <div id="roomTypeModal" class="fixed inset-0 z-[70] hidden overflow-y-auto overflow-x-hidden p-4 md:p-8">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeRoomTypeModal()"></div>
+        
+        <div class="relative mx-auto w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl transition-all transform py-8 px-6 md:px-10">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h3 class="text-3xl font-black text-slate-900">เลือกประเภทห้องพัก</h3>
+                    <p class="text-slate-500">คลิกที่ประเภทห้องเพื่อดูรายละเอียดเฉพาะ</p>
+                </div>
+                <button onclick="closeRoomTypeModal()" class="p-3 bg-slate-100 rounded-2xl hover:bg-slate-200 transition-all">
+                    <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="roomTypeListContainer" class="space-y-4">
+                <div class="group flex items-center gap-6 p-6 bg-slate-50 border-2 border-slate-50 rounded-[2rem] hover:border-indigo-500 hover:bg-white transition-all cursor-pointer shadow-sm hover:shadow-xl">
+                    <div class="w-24 h-24 rounded-2xl overflow-hidden shrink-0">
+                        <img src="https://images.unsplash.com/photo-1522771739844-649f6d175d97" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                    </div>
+                    <div class="flex-grow">
+                        <h4 class="text-xl font-bold text-slate-900 mb-1">ห้องสตูดิโอ (Standard)</h4>
+                        <p class="text-sm text-slate-500 line-clamp-1">แอร์, เฟอร์นิเจอร์ครบ, วิวเมือง</p>
+                        <div class="mt-2 flex items-center gap-4">
+                            <span class="text-indigo-600 font-black text-lg">฿3,500</span>
+                            <span class="text-[10px] px-2 py-1 bg-emerald-100 text-emerald-600 rounded-md font-bold uppercase">ว่าง 2 ห้อง</span>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-white rounded-xl shadow-sm text-indigo-500 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="roomDetailModal" class="fixed inset-0 z-[70] hidden overflow-y-auto bg-slate-900/60 backdrop-blur-sm px-4 py-6">
+        <div class="relative max-w-4xl mx-auto bg-white rounded-[3rem] shadow-2xl overflow-hidden min-h-[500px]">
+            <button onclick="closeRoomDetail()" class="absolute top-6 right-6 z-10 bg-white/80 backdrop-blur-md p-3 rounded-2xl text-slate-800 hover:bg-red-500 hover:text-white transition-all shadow-lg group">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+
+            <div id="roomDetailContent" class="flex flex-col md:flex-row h-full">
+                </div>
+        </div>
+    </div>
+
     <script src="/static/js/index_decorate.js" defer></script>
     <script src="/static/js/index.js" defer></script>
 
 </body>
+
 </html>

@@ -68,6 +68,44 @@ class AdminResponse(BaseModel):
         from_attributes = True
 
 
+class RoomTypeBase(BaseModel):
+    name: str
+    price: int
+    vacancy_count: int = 0
+    description: Optional[str] = None
+    has_air_conditioner: bool = False
+    has_fan: bool = False
+    has_refrigerator: bool = False
+    has_tv: bool = False
+    has_water_heater: bool = False
+    has_balcony: bool = False
+    has_kitchen_sink: bool = False
+    has_microwave: bool = False
+
+class RoomTypeCreate(RoomTypeBase):
+    pass
+
+
+# Schema สำหรับข้อมูลรูปภาพของประเภทห้อง
+class RoomTypeImageResponse(BaseModel):
+    id: int
+    filename: str
+
+    class Config:
+        from_attributes = True
+
+
+class RoomTypeResponse(RoomTypeBase):
+    id: int
+    dorm_id: int
+
+    # 🚨 เพิ่มบรรทัดนี้ เพื่อส่งข้อมูลรูปภาพทั้ง 5 รูปกลับไป
+    room_images: List[RoomTypeImageResponse] = []
+
+    class Config:
+        from_attributes = True
+
+
 # --- Dormitory Schemas ---
 
 # 1. ข้อมูลพื้นฐานที่ต้องใช้ร่วมกัน
@@ -106,6 +144,8 @@ class DormitoryBase(BaseModel):
 # 2. สำหรับใช้รับข้อมูลตอน Owner เพิ่มหอพัก (Create)
 class DormitoryCreate(DormitoryBase):
     pass # ใช้ฟิลด์จาก Base ทั้งหมด
+    # 🚨 เพิ่มบรรทัดนี้ เพื่อให้รับข้อมูลประเภทห้องตอนสร้างหอพัก
+    room_types: List[RoomTypeCreate] = []
 
 # 3. สำหรับส่งข้อมูลรูปภาพกลับไป (Nested ใน DormitoryResponse)
 class DormImageResponse(BaseModel):
@@ -180,6 +220,9 @@ class DormitoryResponse(DormitoryBase):
     # 🚨 เพิ่มบรรทัดนี้ เพื่อรองรับข้อมูลร่างแก้ไข 🚨
     draft: Optional[DormitoryDraftResponse] = None
 
+    # 🚨 เพิ่มบรรทัดนี้ เพื่อให้ส่งข้อมูลประเภทห้องกลับไปแสดงผล
+    room_types: List[RoomTypeResponse] = []
+
     class Config:
         from_attributes = True
 
@@ -204,15 +247,21 @@ class DormViewResponse(BaseModel):
 # 1. สำหรับรับข้อมูลการจองจากหน้าบ้าน (นักศึกษากรอก)
 class BookingCreate(BaseModel):
     dorm_id: int
+    # 🚨 เพิ่มบรรทัดนี้: เพื่อรับ ID ของประเภทห้องที่เลือก (เป็น Optional ได้เผื่อจองแบบไม่ระบุห้อง)
+    room_type_id: Optional[int] = None 
+    
     guest_name: str
     guest_phone: str
-    check_in_date: datetime  # รับค่าวันที่ (Pydantic จะแปลงจาก string "2024-xx-xx" ให้เอง)
+    check_in_date: str # หรือ date
     remark: Optional[str] = None
 
 # 2. สำหรับส่งข้อมูลการจองกลับไป (Response)
 class BookingResponse(BaseModel):
     id: int
     dorm_id: int
+    # 🚨 เพิ่มบรรทัดนี้: เพื่อส่ง ID ห้องกลับไปด้วย
+    room_type_id: Optional[int] = None 
+    
     guest_name: str
     guest_phone: str
     check_in_date: datetime
@@ -223,10 +272,11 @@ class BookingResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# 3. สำหรับ Owner (ถ้าต้องการส่งรายชื่อคนจอง พร้อมชื่อหอพัก)
+# 3. สำหรับ Owner (ส่งรายชื่อคนจอง พร้อมข้อมูลหอพักและประเภทห้อง)
 class BookingWithDormResponse(BookingResponse):
-    # เชื่อมโยงข้อมูลหอพักแบบย่อกลับไปด้วย (ถ้าต้องการใช้ในหน้า Dashboard Owner)
     dormitory: Optional[DormitoryBase] = None
+    # 🚨 เพิ่มบรรทัดนี้: เพื่อส่งข้อมูลประเภทห้อง (ชื่อ/ราคา) กลับไปให้ Owner ดูในระบบหลังบ้าน
+    room_type: Optional[RoomTypeResponse] = None
 
     class Config:
         from_attributes = True

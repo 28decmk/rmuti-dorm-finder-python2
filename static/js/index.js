@@ -1,5 +1,10 @@
 let currentDormImages = []; // เก็บ URL รูปภาพทั้งหมดของหอพักที่เปิดอยู่
 let currentImageIndex = 0; // เก็บว่าตอนนี้ดูรูปที่เท่าไหร่
+let currentDormData = null;
+let currentRoomTypes = [];
+let currentRoomImages = []; // เก็บ Array รูปภาพของห้องที่กำลังดู
+let currentRoomImgIdx = 0;   // เก็บ Index รูปที่กำลังแสดง
+let currentSelectedRoomTypeId = null; // ตัวแปรเก็บไว้ว่ากำลังจองห้องไหน
 
 
 const currentVisitorId = getOrCreateVisitorId();
@@ -231,6 +236,9 @@ async function viewDormDetail(dormId) {
             currentDormImages = ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800'];
         }
 
+        // ✅ เก็บข้อมูล Room Types ไว้ที่ตัวแปร Global เพื่อใช้ใน Modal ถัดไป
+        currentRoomTypes = dorm.room_types || [];
+
         const modal = document.getElementById('publicDormModal');
         const content = document.getElementById('publicDormContent');
         const formattedPhone = dorm.contact_number.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
@@ -359,12 +367,20 @@ async function viewDormDetail(dormId) {
                         </div>
                         <div class="space-y-4">
 
-                            <button onclick="openBookingModal(${dorm.id})" 
-                                class="flex items-center justify-center gap-3 w-full bg-[#FF6600] text-white py-4 rounded-2xl font-black text-xl hover:bg-[#e65c00] transition-all shadow-xl shadow-orange-100 active:scale-95 mb-6 ring-4 ring-orange-50">
+                            <button onclick="scrollToRoomTypes(${dorm.id}, '${dorm.name}')" 
+                                class="flex items-center justify-center gap-3 w-full bg-indigo-50 text-indigo-600 py-4 rounded-2xl font-bold text-lg hover:bg-indigo-100 transition-all active:scale-95 mb-2 border border-indigo-100">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                                ดูประเภทห้องพัก
+                            </button>
+
+                            <button onclick="openBookingModal(${dorm.id}, null, '${dorm.name}')"
+                                    class="flex items-center justify-center gap-3 w-full bg-[#FF6600] text-white py-4 rounded-2xl font-black text-xl hover:bg-[#e65c00] transition-all shadow-xl shadow-orange-100 active:scale-95 mb-6 ring-4 ring-orange-50">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
-                                จองหอพักที่นี่
+                                จองหอพักที่นี่ (จองรวม)
                             </button>
 
 
@@ -420,33 +436,254 @@ async function viewDormDetail(dormId) {
     }
 }
 
+
+// ฟังก์ชันสำหรับเปิด Modal เลือกประเภทห้อง
+function scrollToRoomTypes(dormId, dormName) {
+    // ปิด Modal รายละเอียดหอพักก่อน
+    document.getElementById('publicDormModal').classList.add('hidden');
+
+    const container = document.getElementById('roomTypeListContainer');
+    
+    if (!currentRoomTypes || currentRoomTypes.length === 0) {
+        container.innerHTML = `<p class="text-center text-slate-400 py-10">ขออภัย ไม่มีข้อมูลประเภทห้องพักในขณะนี้</p>`;
+    } else {
+        container.innerHTML = currentRoomTypes.map(room => {
+            const roomImg = room.room_images && room.room_images.length > 0 
+                ? `/static/uploads/dorms/${room.room_images[0].filename}` 
+                : 'https://images.unsplash.com/photo-1522771739844-649f6d175d97';
+
+            return `
+                <div class="group flex items-center gap-6 p-6 bg-slate-50 border-2 border-slate-50 rounded-[2rem] hover:border-indigo-500 hover:bg-white transition-all cursor-pointer shadow-sm hover:shadow-xl"
+                    onclick="openRoomDetail(${room.id}, ${dormId}, '${dormName}')">
+                    <div class="w-24 h-24 rounded-2xl overflow-hidden shrink-0 bg-slate-200">
+                        <img src="${roomImg}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                    </div>
+                    <div class="flex-grow">
+                        <h4 class="text-xl font-bold text-slate-900 mb-1">${room.name}</h4>
+                        <p class="text-sm text-slate-500 line-clamp-1">
+                            ${room.has_air_conditioner ? 'แอร์, ' : ''}${room.has_water_heater ? 'เครื่องทำน้ำอุ่น, ' : ''}${room.description || ''}
+                        </p>
+                        <div class="mt-2 flex items-center gap-4">
+                            <span class="text-indigo-600 font-black text-lg">฿${room.price.toLocaleString()}</span>
+                            <span class="text-[10px] px-2 py-1 ${room.vacancy_count > 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'} rounded-md font-bold uppercase">
+                                ${room.vacancy_count > 0 ? `ว่าง ${room.vacancy_count} ห้อง` : 'เต็มแล้ว'}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-white rounded-xl shadow-sm text-indigo-500 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    document.getElementById('roomTypeModal').classList.remove('hidden');
+}
+
+
+// ฟังก์ชันสำหรับปิด Modal เลือกประเภทห้อง
+function closeRoomTypeModal() {
+    document.getElementById('roomTypeModal').classList.add('hidden');
+    // ถ้าอยากให้ปิดแล้วกลับไปหน้ารายละเอียดหอพักเลย ให้เปิดบรรทัดล่างนี้:
+    // document.getElementById('publicDormModal').classList.remove('hidden');
+}
+
+
+
+
+// เลื่อนไปรูปถัดไป
+function nextRoomImg(event) {
+    event.stopPropagation(); // กันไม่ให้ไป trigger การกดขยายภาพ
+    currentRoomImgIdx = (currentRoomImgIdx + 1) % currentRoomImages.length;
+    updateRoomImgUI();
+}
+
+// เลื่อนกลับรูปก่อนหน้า
+function prevRoomImg(event) {
+    event.stopPropagation();
+    currentRoomImgIdx = (currentRoomImgIdx - 1 + currentRoomImages.length) % currentRoomImages.length;
+    updateRoomImgUI();
+}
+
+// อัปเดตการแสดงผลรูปภาพ
+function updateRoomImgUI() {
+    const imgTag = document.getElementById('mainRoomImg');
+    const idxTag = document.getElementById('roomImgIdxDisplay');
+    if (imgTag) imgTag.src = currentRoomImages[currentRoomImgIdx];
+    if (idxTag) idxTag.innerText = currentRoomImgIdx + 1;
+}
+
+// ✅ ฟังก์ชันสำหรับกดดูรูปใหญ่ (ขยายภาพ)
+function expandRoomImage() {
+    if (currentRoomImages && currentRoomImages.length > 0) {
+        // 1. อัปเดตรายการรูปที่จะใช้ใน Lightbox เป็นรูปจากห้องพัก
+        currentImages = [...currentRoomImages]; 
+        
+        // 2. สั่งเปิด Lightbox โดยเริ่มจาก index ปัจจุบันที่ดูอยู่
+        openLightbox(currentRoomImgIdx);
+    }
+}
+
+
+// ฟังก์ชันปิด Modal
+function closeRoomDetail() {
+    const modal = document.getElementById('roomDetailModal');
+    modal.classList.add('hidden');
+    // ไม่ต้องปลด overflow hidden ของ body เพราะเรายังซ้อนอยู่บน Modal หอพัก
+}
+
+// ฟังก์ชันเปิด Modal รายละเอียดห้อง
+function openRoomDetail(roomId, dormId, dormName) {
+    const room = currentRoomTypes.find(r => r.id === roomId);
+    if (!room) return;
+
+    // ✅ เก็บรูปภาพทั้งหมดเข้าตัวแปร Global
+    currentRoomImages = room.room_images && room.room_images.length > 0 
+        ? room.room_images.map(img => `/static/uploads/dorms/${img.filename}`)
+        : ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800'];
+    
+    currentRoomImgIdx = 0; // เริ่มที่รูปแรกเสมอ
+
+    const modal = document.getElementById('roomDetailModal');
+    const content = document.getElementById('roomDetailContent');
+
+    // ... (ส่วน amenitiesHTML เหมือนเดิม) ...
+    const roomAmenities = [
+        { key: 'has_air_conditioner', label: 'แอร์', icon: '❄️' },
+        { key: 'has_fan', label: 'พัดลม', icon: '🍃' },
+        { key: 'has_refrigerator', label: 'ตู้เย็น', icon: '🧊' },
+        { key: 'has_tv', label: 'ทีวี', icon: '📺' },
+        { key: 'has_water_heater', label: 'เครื่องทำน้ำอุ่น', icon: '🚿' },
+        { key: 'has_balcony', label: 'ระเบียง', icon: '🌅' },
+        { key: 'has_kitchen_sink', label: 'ซิงค์ล้างจาน', icon: '🚰' },
+        { key: 'has_microwave', label: 'ไมโครเวฟ', icon: '🍱' }
+    ];
+    const amenitiesHTML = roomAmenities.filter(a => room[a.key]).map(a => `
+        <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+            <span>${a.icon}</span><span class="text-sm font-bold text-slate-700">${a.label}</span>
+        </div>
+    `).join('');
+
+    content.innerHTML = `
+        <div class="md:w-1/2 h-[400px] md:h-auto relative bg-slate-900 group">
+            <img id="mainRoomImg" src="${currentRoomImages[0]}" 
+                 onclick="expandRoomImage()"
+                 class="w-full h-full object-cover cursor-zoom-in transition duration-500" 
+                 onerror="this.src='https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800'">
+            
+            ${currentRoomImages.length > 1 ? `
+                <div class="absolute inset-0 flex items-center justify-between px-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="prevRoomImg(event)" class="p-2 rounded-full bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <button onclick="nextRoomImg(event)" class="p-2 rounded-full bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                </div>
+                <div class="absolute bottom-6 right-6 bg-black/50 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-medium">
+                    <span id="roomImgIdxDisplay">1</span> / ${currentRoomImages.length}
+                </div>
+            ` : ''}
+
+            <div class="absolute bottom-6 left-6">
+                <span class="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full text-indigo-600 font-black shadow-lg">
+                    ฿${room.price.toLocaleString()} /เดือน
+                </span>
+            </div>
+        </div>
+
+        <div class="md:w-1/2 p-10 overflow-y-auto max-h-[80vh]">
+            <div class="mb-6">
+                <h3 class="text-3xl font-black text-slate-900 mb-2">${room.name}</h3>
+                <span class="px-3 py-1 ${room.vacancy_count > 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'} rounded-lg text-xs font-bold uppercase tracking-wider">
+                    ${room.vacancy_count > 0 ? `ว่าง ${room.vacancy_count} ห้อง` : 'เต็มแล้ว'}
+                </span>
+            </div>
+            
+            <div class="mb-8">
+                <h4 class="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-4">สิ่งอำนวยความสะดวกในห้อง</h4>
+                <div class="grid grid-cols-2 gap-3">${amenitiesHTML || '<p class="text-slate-400 italic">ไม่มีข้อมูล</p>'}</div>
+            </div>
+
+            <div class="mb-8">
+                <h4 class="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-3">รายละเอียดเพิ่มเติม</h4>
+                <p class="text-slate-600 leading-relaxed text-sm">${room.description || '-'}</p>
+            </div>
+
+            <button onclick="openBookingModal(${dormId}, ${room.id}, '${dormName} (${room.name})')"
+                    class="w-full py-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-indigo-200 hover:shadow-indigo-400 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 flex items-center justify-center gap-2 mb-4">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                จองห้องพักตอนนี้
+            </button>
+
+            <button onclick="closeRoomDetail()" class="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold hover:bg-slate-200 transition-all active:scale-95">ปิดหน้าต่างนี้</button>
+        </div>
+    `;
+
+    modal.classList.remove('hidden');
+}
+
+
+
+
+
+
 function openLightbox(index) {
     currentImageIndex = index;
-    updateLightboxContent();
-    document.getElementById('lightboxModal').classList.remove('hidden');
+    
+    const modal = document.getElementById('lightboxModal');
+    // เช็คว่า ID ไหนมีอยู่จริงในหน้าเว็บ (ป้องกัน Error)
+    const imgElement = document.getElementById('lightboxImg') || document.getElementById('lightbox-img');
+    
+    if (imgElement) {
+        updateLightbox();
+        modal.classList.remove('hidden');
+        // เพิ่ม Animation เล็กน้อย
+        imgElement.classList.remove('scale-95');
+    }
 }
 
 function closeLightbox() {
     document.getElementById('lightboxModal').classList.add('hidden');
+    // ถ้าไม่มี modal อื่นเปิดอยู่ ให้คืนค่า overflow
+    if (document.getElementById('roomDetailModal').classList.contains('hidden') && 
+        document.getElementById('publicDormModal').classList.contains('hidden')) {
+        document.body.style.overflow = 'auto';
+    }
 }
 
-function updateLightboxContent() {
-    const imgElement = document.getElementById('lightboxImg');
-    const captionElement = document.getElementById('lightboxCaption');
+
+
+
+
+// ✅ ฟังก์ชันอัปเดตการแสดงผล (ให้รองรับทั้ง ID แบบ CamelCase และ kebab-case)
+function updateLightbox() {
+    const img = document.getElementById('lightboxImg') || document.getElementById('lightbox-img');
+    const counter = document.getElementById('lightboxCaption') || document.getElementById('lightbox-counter');
     
-    // อัปเดตรูปและข้อความ
-    imgElement.src = currentDormImages[currentImageIndex];
-    captionElement.innerText = `${currentImageIndex + 1} / ${currentDormImages.length}`;
+    if (img) img.src = currentImages[currentImageIndex];
+    if (counter) counter.innerText = `รูปภาพที่ ${currentImageIndex + 1} / ${currentImages.length}`;
 }
 
-function nextImage() {
-    currentImageIndex = (currentImageIndex + 1) % currentDormImages.length;
-    updateLightboxContent();
-}
-
+// ฟังก์ชันปุ่มถัดไปใน Lightbox
 function prevImage() {
-    currentImageIndex = (currentImageIndex - 1 + currentDormImages.length) % currentDormImages.length;
-    updateLightboxContent();
+    changeLightboxImage(-1);
+}
+
+function changeLightboxImage(step) {
+    if (!currentImages || currentImages.length <= 1) return;
+    currentImageIndex = (currentImageIndex + step + currentImages.length) % currentImages.length;
+    
+    const img = document.getElementById('lightboxImg') || document.getElementById('lightbox-img');
+    if (img) {
+        img.style.opacity = '0';
+        setTimeout(() => {
+            updateLightbox();
+            img.style.opacity = '1';
+        }, 150);
+    }
 }
 
 // เพิ่มลูกเล่น: กดปุ่มลูกศรที่ Keyboard เพื่อเปลี่ยนรูปได้
@@ -457,6 +694,9 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowRight') nextImage();
     if (e.key === 'ArrowLeft') prevImage();
     if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'Escape') {
+        closeRoomTypeModal();
+    }
 });
 
 function closePublicModal() {
@@ -609,28 +849,26 @@ document.getElementById('search-input').addEventListener('keypress', (e) => {
 
 
 // ฟังก์ชันเปิด Modal จอง
-function openBookingModal(dormId) {
-    // 1. ดึงชื่อหอพักเก็บไว้ก่อน
-    const dormNameElement = document.querySelector('#publicDormContent h2');
-    const dormName = dormNameElement ? dormNameElement.innerText : "หอพัก";
-    
-    // 2. ปิด Modal รายละเอียดหอพักก่อน (เพื่อไม่ให้มันซ้อนกัน)
-    const publicModal = document.getElementById('publicDormModal');
-    if (publicModal) {
-        publicModal.classList.add('hidden');
+function openBookingModal(dormId, roomTypeId = null, dormName = "หอพัก") {
+    console.log("🟢 [Step 1] รับค่าเข้ามา:", { dormId, roomTypeId, dormName });
+
+    window.currentSelectedRoomTypeId = roomTypeId; 
+
+    const dormIdInput = document.getElementById('booking-dorm-id');
+    if (dormIdInput) {
+        dormIdInput.value = dormId; // หยอดค่า
+        console.log("🟢 [Step 2] หยอด ID ลง Input แล้ว:", dormIdInput.value);
+    } else {
+        console.error("🔴 [Error] หา Element #booking-dorm-id ไม่เจอใน HTML!");
     }
 
-    // 3. ใส่ข้อมูลใน Booking Modal
-    document.getElementById('booking-dorm-id').value = dormId;
-    document.getElementById('booking-dorm-name').innerText = dormName;
-    
-    // 4. แสดง Booking Modal
-    const bookingModal = document.getElementById('bookingModal');
-    bookingModal.classList.remove('hidden');
-    bookingModal.classList.add('flex');
-    
-    // ป้องกันการ Scroll (ถ้ายังไม่ได้ทำ)
-    document.body.style.overflow = 'hidden';
+    // ส่วนที่เหลือเหมือนเดิม...
+    const dormNameLabel = document.getElementById('booking-dorm-name');
+    if (dormNameLabel) dormNameLabel.innerText = dormName;
+
+    const modal = document.getElementById('bookingModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
 }
 
 // ฟังก์ชันปิด Modal จอง
@@ -649,18 +887,43 @@ function closeBookingModal() {
 // จัดการการส่งฟอร์ม (Submit)
 document.getElementById('bookingForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
-    const btn = e.target.querySelector('button[type="submit"]');
-    const dormId = document.getElementById('booking-dorm-id').value;
-    
-    // ดึงค่าจาก input ต่างๆ
+    const form = e.currentTarget; 
+    const btn = form.querySelector('button[type="submit"]');
+
+    // --- จุดแก้ไขหลัก: ดึงค่าด้วย ID ตรงๆ เพื่อป้องกันโครงสร้าง HTML ซับซ้อน ---
+    const dormIdInput = document.getElementById('booking-dorm-id');
+    const rawDormId = dormIdInput ? dormIdInput.value : null;
+
+    console.log("📍 Checkpoint - rawDormId:", rawDormId);
+
+    // ตรวจสอบทั้งค่าว่าง และค่าที่เป็นตัวอักษร "undefined" / "null"
+    if (!rawDormId || rawDormId === "undefined" || rawDormId === "null") {
+        Swal.fire({
+            icon: 'error',
+            title: 'ข้อมูลไม่ครบ',
+            text: 'ไม่พบรหัสหอพัก (ID หลุด) กรุณาปิดหน้าต่างนี้แล้วลองกดจองใหม่อีกครั้ง'
+        });
+        return;
+    }
+
+    // เตรียมข้อมูล Payload
     const formData = {
-        dorm_id: parseInt(dormId),
-        guest_name: e.target.querySelector('input[type="text"]').value,
-        guest_phone: e.target.querySelector('input[type="tel"]').value,
-        check_in_date: e.target.querySelector('input[type="date"]').value,
-        remark: e.target.querySelector('textarea').value
+        dorm_id: parseInt(rawDormId),
+        // ใช้ตัวแปร Global ที่เราเก็บไว้ตอนเปิด Modal
+        room_type_id: window.currentSelectedRoomTypeId ? parseInt(window.currentSelectedRoomTypeId) : null,
+        guest_name: document.getElementById('booking-guest-name')?.value.trim() || "",
+        guest_phone: document.getElementById('booking-guest-phone')?.value.trim() || "",
+        check_in_date: document.getElementById('booking-check-in-date')?.value || "",
+        remark: document.getElementById('booking-remark')?.value.trim() || ""
     };
+
+    console.log("🚀 Payload ready:", formData);
+
+    // ตรวจสอบความถูกต้องของ dorm_id ก่อนส่ง
+    if (isNaN(formData.dorm_id)) {
+        Swal.fire('Error', 'รหัสหอพักไม่ถูกต้อง (NaN)', 'error');
+        return;
+    }
 
     try {
         btn.innerText = "กำลังส่งข้อมูล...";
@@ -672,28 +935,40 @@ document.getElementById('bookingForm')?.addEventListener('submit', async (e) => 
             body: JSON.stringify(formData)
         });
 
+        const resultData = await response.json();
+
         if (response.ok) {
-            Swal.fire({ // ใช้ SweetAlert2 จะสวยกว่า alert ธรรมดา
-                icon: 'success',
-                title: 'จองหอพักสำเร็จ!',
-                text: 'เจ้าของหอพักจะติดต่อกลับหาคุณโดยเร็วที่สุด',
-                confirmButtonColor: '#003399'
+            Swal.fire({ 
+                icon: 'success', 
+                title: 'จองหอพักสำเร็จ!', 
+                text: 'เจ้าหน้าที่ได้รับข้อมูลการจองของคุณแล้ว',
+                confirmButtonColor: '#003399' 
             });
-            closeBookingModal();
-            e.target.reset(); // ล้างข้อมูลในฟอร์ม
+            
+            // ใช้ฟังก์ชันปิด Modal ที่คุณมี
+            if (typeof closeBookingModal === 'function') {
+                closeBookingModal();
+            } else {
+                document.getElementById('bookingModal').classList.add('hidden');
+                document.body.style.overflow = 'auto';
+            }
+            
+            form.reset(); 
         } else {
-            const err = await response.json();
-            throw new Error(err.detail || 'เกิดข้อผิดพลาดในการจอง');
+            // ถ้า Server ตอบกลับ error (เช่น 422) จะมาตกที่นี่
+            const errorMsg = Array.isArray(resultData.detail) 
+                ? resultData.detail.map(d => d.msg).join(', ') 
+                : (resultData.detail || 'เกิดข้อผิดพลาดในการส่งข้อมูล');
+            throw new Error(errorMsg);
         }
     } catch (error) {
-        alert("❌ Error: " + error.message);
+        console.error("Submit Error:", error);
+        Swal.fire('ส่งข้อมูลไม่สำเร็จ', error.message, 'error');
     } finally {
         btn.innerHTML = `ส่งข้อมูลการจอง <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>`;
         btn.disabled = false;
     }
 });
-
-
 
 
 // เริ่มต้นทำงาน

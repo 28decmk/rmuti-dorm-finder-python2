@@ -36,9 +36,20 @@
                     คุณ <span id="display-owner-name">...</span> จัดการห้องว่างและอัปเดตข้อมูลของคุณที่นี่
                 </p>
             </div>
-            <button onclick="openAddDormModal()" class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95">
-                + เพิ่มหอพักใหม่
-            </button>
+
+            <div class="flex flex-col gap-3 w-full md:w-auto">
+                <button onclick="openAddDormModal()" 
+                    class="flex items-center justify-center gap-2 bg-indigo-600 text-white px-8 py-3.5 rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95">
+                    <i class="fas fa-plus-circle"></i>
+                    เพิ่ม/แก้ไขข้อมูลหอพัก
+                </button>
+
+                <button id="btn-manage-room-types" onclick="openAddRoomTypeModal()" 
+                    class="hidden flex items-center justify-center gap-2 bg-white border-2 border-slate-200 text-slate-600 px-8 py-3.5 rounded-2xl font-bold hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 shadow-sm">
+                    <i class="fas fa-door-open text-orange-500"></i>
+                    จัดการประเภทห้องพัก
+                </button>
+            </div>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -233,6 +244,218 @@
     </div>
     
 
+    <div id="roomTypeModal" class="fixed inset-0 z-[60] hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 py-8">
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeRoomTypeModal()"></div>
+
+            <div class="inline-block w-full max-w-5xl overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-[2.5rem] relative">
+                <div class="px-8 py-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-2xl font-black text-slate-900 flex items-center gap-3">
+                            <i class="fas fa-door-open text-indigo-500"></i>
+                            จัดการรายละเอียดประเภทห้อง
+                        </h3>
+                        <p class="text-slate-500 text-sm font-medium">ระบุสิ่งอำนวยความสะดวกและราคาแยกตามประเภทห้องพัก</p>
+                    </div>
+                    <button onclick="closeRoomTypeModal()" class="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm text-slate-400 hover:text-red-500 transition-all">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="px-8 py-8 max-h-[70vh] overflow-y-auto">
+                    <div class="mb-8 p-6 bg-indigo-50/50 rounded-3xl border border-indigo-100">
+                        <label class="block text-xs font-black text-indigo-600 uppercase mb-2 ml-1">หอพักที่กำลังจัดการ</label>
+                        <select id="room-type-dorm-select" class="w-full px-5 py-4 rounded-2xl border-none bg-white shadow-sm focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-slate-700">
+                        </select>
+                    </div>
+
+                    <div class="flex justify-between items-center mb-6">
+                        <h4 class="font-black text-slate-800 uppercase tracking-widest text-xs">รายการประเภทห้องทั้งหมด</h4>
+                        <button onclick="addNewRoomRow()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-100">
+                            <i class="fas fa-plus"></i> เพิ่มประเภทห้อง
+                        </button>
+                    </div>
+
+                    <div id="room-rows-container">
+                        </div>
+                </div>
+
+                <div class="px-8 py-6 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+                    <p class="text-xs text-slate-400 font-medium">* ข้อมูลราคาจะถูกนำไปแสดงเป็น "ราคาเริ่มต้น" อัตโนมัติ</p>
+                    <div class="flex gap-3">
+                        <button onclick="closeRoomTypeModal()" class="px-8 py-3.5 text-slate-500 font-bold hover:bg-slate-200 rounded-2xl transition-all">
+                            ยกเลิก
+                        </button>
+                        <button onclick="saveRoomTypes()" class="px-10 py-3.5 bg-indigo-600 text-white font-bold rounded-2xl shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95">
+                            <i class="fas fa-save mr-2"></i> บันทึกข้อมูลห้องพัก
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="roomTypeViewModal" class="fixed inset-0 z-[70] hidden overflow-y-auto">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeRoomTypeViewModal()"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden transform transition-all">
+                
+                <div class="relative h-72 bg-slate-100">
+                    <div id="room-view-images" class="flex h-full overflow-x-auto snap-x snap-mandatory scrollbar-hide"></div>
+                    
+                    <div class="absolute top-5 right-5 flex gap-2 z-10">
+                        <button id="btn-edit-room-type" onclick="handleEditFromView()" class="w-10 h-10 bg-amber-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-amber-600 hover:scale-110 transition-all">
+                            <i class="fas fa-pen text-sm"></i>
+                        </button>
+
+                        <button onclick="closeRoomTypeViewModal()" class="w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-all text-slate-800">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-8">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h3 id="room-view-name" class="text-2xl font-black text-slate-800 mb-1">ชื่อประเภทห้อง</h3>
+                            <div id="room-view-price" class="text-xl font-bold text-indigo-600 font-mono">฿0 / เดือน</div>
+                        </div>
+                        <div id="room-view-vacancy" class="px-4 py-2 rounded-2xl font-bold text-sm">
+                            </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">รายละเอียด</h4>
+                            <p id="room-view-description" class="text-slate-600 leading-relaxed text-sm">ไม่มีรายละเอียด</p>
+                        </div>
+
+                        <div>
+                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">สิ่งอำนวยความสะดวกในห้อง</h4>
+                            <div id="room-view-amenities" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 pt-6 border-t border-slate-100">
+                        <button onclick="closeRoomTypeViewModal()" class="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all">
+                            ปิดหน้าต่างนี้
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="editRoomTypeModal" class="fixed inset-0 z-[100] hidden overflow-y-auto overflow-x-hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="relative bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+            
+            <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <div>
+                    <h3 class="text-xl font-black text-slate-800">แก้ไขประเภทห้องพัก</h3>
+                    <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Room Type Editor</p>
+                </div>
+                <button type="button" onclick="closeEditRoomTypeModal()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white hover:shadow-md transition-all text-slate-400 hover:text-red-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <form onsubmit="submitEditRoomType(event)" class="p-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">ชื่อประเภทห้องพัก</label>
+                        <input type="text" id="edit-room-name" required
+                            class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700" placeholder="เช่น ห้องแอร์เตียงคู่">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">รูปภาพ (คลิกกากบาทเพื่อลบ / กด + เพื่อเพิ่ม)</label>
+                        <div class="flex flex-wrap gap-4 p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                            <div id="edit-room-images-container" class="flex flex-wrap gap-4"></div>
+                            <label class="w-20 h-20 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-white hover:border-indigo-500 hover:text-indigo-500 transition-all group">
+                                <i class="fas fa-plus text-lg mb-1"></i>
+                                <span class="text-[10px] font-bold">เพิ่มรูป</span>
+                                <input type="file" id="edit-room-images-input" multiple accept="image/*" class="hidden" onchange="handleRoomFileSelect(event)">
+                            </label>
+                        </div>
+                        <div id="new-room-images-preview" class="flex flex-wrap gap-4 mt-4"></div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">ราคาต่อเดือน (บาท)</label>
+                        <input type="number" id="edit-room-price" required
+                            class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">จำนวนห้องว่าง</label>
+                        <input type="number" id="edit-room-vacancy" required
+                            class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">รายละเอียดเพิ่มเติม</label>
+                        <textarea id="edit-room-description" rows="3"
+                            class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700"></textarea>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">สิ่งอำนวยความสะดวก</label>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
+                                <input type="checkbox" id="edit-has-air-conditioner" class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                                <span class="text-xs font-bold text-slate-600">แอร์</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
+                                <input type="checkbox" id="edit-has-fan" class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                                <span class="text-xs font-bold text-slate-600">พัดลม</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
+                                <input type="checkbox" id="edit-has-refrigerator" class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                                <span class="text-xs font-bold text-slate-600">ตู้เย็น</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
+                                <input type="checkbox" id="edit-has-tv" class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                                <span class="text-xs font-bold text-slate-600">ทีวี</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
+                                <input type="checkbox" id="edit-has-water-heater" class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                                <span class="text-xs font-bold text-slate-600">เครื่องทำน้ำอุ่น</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
+                                <input type="checkbox" id="edit-has-balcony" class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                                <span class="text-xs font-bold text-slate-600">ระเบียง</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
+                                <input type="checkbox" id="edit-has-kitchen-sink" class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                                <span class="text-xs font-bold text-slate-600">ซิงค์ล้างจาน</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
+                                <input type="checkbox" id="edit-has-microwave" class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                                <span class="text-xs font-bold text-slate-600">ไมโครเวฟ</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex gap-3">
+                    <button type="submit" 
+                        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-indigo-200 transition-all transform active:scale-95">
+                        บันทึกการแก้ไข
+                    </button>
+                    <button type="button" onclick="closeEditRoomTypeModal()"
+                        class="px-8 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black py-4 rounded-2xl transition-all">
+                        ยกเลิก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
     <section class="mt-16 mb-20">
         <div class="flex items-center justify-between mb-8">
             <div>
@@ -261,6 +484,7 @@
         </div>
     </section>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
         // ป้องกันการกดย้อนกลับ (Back Button) โดยการดันสถานะปัจจุบันเข้า History ตลอดเวลา

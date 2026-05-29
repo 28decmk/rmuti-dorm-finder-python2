@@ -46,181 +46,276 @@
             scroll-margin-top: 100px;
             /* ปรับค่าตามความสูงของ Navbar คุณ */
         }
+
+        /* ตกแต่ง Scrollbar ให้ดูสวยงาม (สำหรับ Chrome/Safari) */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1;
+        }
+
+        @style {
+            @keyframes shimmer {
+                100% { transform: translateX(100%); }
+            }
+
+            @keyframes tilt {
+                0%, 50%, 100% { transform: rotate(0deg) scale(1); }
+                25% { transform: rotate(0.5deg) scale(1.02); }
+                75% { transform: rotate(-0.5deg) scale(1.02); }
+            }
+
+            .animate-tilt {
+                animation: tilt 6s infinite linear;
+            }
+
+            /* สำหรับทำให้ bg-clip-text ทำงานในบาง Browser */
+            .bg-clip-text {
+                -webkit-background-clip: text;
+                background-clip: text;
+            }
+        }
+
     </style>
 </head>
 
 <body class="bg-[#f8fafc] text-slate-900 antialiased">
 
-    <nav class="glass-nav sticky top-0 z-50 border-b border-slate-200/60">
+    <nav class="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md border-b border-white/10">
         <div class="container mx-auto px-6 h-20 flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <div class="w-10 h-10 bg-[#000000] rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
-                    <span class="text-white font-bold text-xl">R</span>
+            <a href="/" class="flex items-center gap-3 group bg-white/10 pr-4 pl-2 py-1.5 rounded-full backdrop-blur-sm border border-white/10 hover:bg-white/20 transition-all">
+                <div class="bg-white p-1.5 rounded-full shadow-lg">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRE77r_SKqGrqR7dFBEBWictq6cFK-Sn-U27XeggnxiAg&s=10" 
+                        alt="RMUTI Logo" 
+                        class="h-9 w-9 object-contain transition-transform group-hover:rotate-12">
                 </div>
-                <span class="text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-[#000000]">
-                    RMUTI <span class="text-[#FF6600]">Dorm</span>
-                </span>
-            </div>
-            <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
-                <a href="#" class="hover:text-[#03a9f4] transition-colors">หน้าแรก</a>
-                <a href="#popular-dorms" class="hover:text-[#03a9f4] transition-colors">หอพักยอดนิยม</a>
-                <button onclick="toggleModal()" class="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-slate-900 text-white hover:bg-[#003399] transition-all shadow-sm active:scale-95 text-sm font-medium">
+                
+                <div class="flex flex-col leading-tight">
+                    <span class="text-base font-black tracking-tighter text-white">
+                        RMUTI <span class="text-[#FF6600]">KKC</span>
+                    </span>
+                    <span class="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Dorm Finder</span>
+                </div>
+            </a>
+
+            <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
+                <a href="#" class="hover:text-[#FF6600] transition-colors">หน้าแรก</a>
+                <a href="#popular-dorms" class="hover:text-[#FF6600] transition-colors">หอพักยอดนิยม</a>
+                
+                <button onclick="toggleModal()" class="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-[#FF6600] text-white hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20 active:scale-95 text-sm font-bold">
                     สำหรับเจ้าของหอพัก
                 </button>
             </div>
         </div>
     </nav>
 
-    <header class="relative overflow-hidden bg-white pt-24 pb-20 border-b border-slate-100">
-        <div class="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px] opacity-50"></div>
-        <div class="container mx-auto px-6 relative text-center">
-            <span class="inline-block px-4 py-1.5 mb-6 text-xs font-semibold tracking-widest uppercase bg-orange-50 text-[#FF6600] rounded-full">
+
+    <div id="filter-overlay" onclick="toggleFilterSection()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[1000] hidden opacity-0 transition-opacity duration-300"></div>
+
+    <aside id="filter-sidebar" 
+        class="fixed top-0 left-0 h-full w-[350px] bg-white z-[1001] shadow-2xl -translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+        
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
+            <div>
+                <h2 class="text-xl font-black text-slate-800 tracking-tight">คัดกรองหอพัก</h2>
+                <p class="text-xs font-bold text-slate-400">ระบุความต้องการของคุณ</p>
+            </div>
+            <button onclick="toggleFilterSection()" class="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+            
+            <div class="space-y-6">
+                <div class="space-y-3">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">เรียงตาม</label>
+                    <select id="filter-sort" onchange="applyFilters()" class="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-[#003399]">
+                        <option value="latest">🏠 ล่าสุด</option>
+                        <option value="price_asc">💰 ราคาต่ำ-สูง</option>
+                        <option value="price_desc">💵 ราคาสูง-ต่ำ</option>
+                        <option value="views">🔥 ยอดนิยม</option>
+                    </select>
+                </div>
+
+                <div class="space-y-3">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">ประเภทหอพัก</label>
+                    <select id="filter-type" onchange="applyFilters()" class="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-[#003399]">
+                        <option value="all">ทั้งหมด</option>
+                        <option value="หอพักรวม">👫 หอพักรวม</option>
+                        <option value="หอพักชาย">👨 หอพักชาย</option>
+                        <option value="หอพักหญิง">👩 หอพักหญิง</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="space-y-4 pt-8 border-t border-slate-50">
+                <div class="flex justify-between items-end">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">ระยะห่าง (ไม่เกิน)</label>
+                    <span id="distance-display" class="text-sm font-black text-[#003399]">ทั้งหมด</span>
+                </div>
+                <div class="px-2">
+                    <input type="range" id="filter-distance" min="0" max="5000" step="100" value="5000" oninput="updateDistanceDisplay(this.value)" onchange="applyFilters()" 
+                        class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-[#003399]">
+                    <div class="flex justify-between mt-3 text-[10px] font-bold text-slate-400 uppercase">
+                        <span>0 ม.</span>
+                        <span>2.5 กม.</span>
+                        <span>5 กม.+</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4 pt-8 border-t border-slate-50 pb-4">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">สิ่งอำนวยความสะดวก</label>
+                <div class="grid grid-cols-1 gap-2">
+                    
+                    <label class="flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 cursor-pointer transition-all border border-transparent hover:border-slate-100 group">
+                        <span class="text-sm font-bold text-slate-600 group-hover:text-slate-900 flex items-center gap-3">
+                            <span class="text-lg">📶</span> WiFi / อินเทอร์เน็ต
+                        </span>
+                        <input type="checkbox" name="amenity" value="has_wifi" onchange="applyFilters()" class="w-5 h-5 rounded-lg border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                    </label>
+
+                    <label class="flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 cursor-pointer transition-all border border-transparent hover:border-slate-100 group">
+                        <span class="text-sm font-bold text-slate-600 group-hover:text-slate-900 flex items-center gap-3">
+                            <span class="text-lg">❄️</span> เครื่องปรับอากาศ
+                        </span>
+                        <input type="checkbox" name="amenity" value="has_air_conditioner" onchange="applyFilters()" class="w-5 h-5 rounded-lg border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                    </label>
+
+                    <label class="flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 cursor-pointer transition-all border border-transparent hover:border-slate-100 group">
+                        <span class="text-sm font-bold text-slate-600 group-hover:text-slate-900 flex items-center gap-3">
+                            <span class="text-lg">🚿</span> เครื่องทำน้ำอุ่น
+                        </span>
+                        <input type="checkbox" name="amenity" value="has_water_heater" onchange="applyFilters()" class="w-5 h-5 rounded-lg border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                    </label>
+
+                    <label class="flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 cursor-pointer transition-all border border-transparent hover:border-slate-100 group">
+                        <span class="text-sm font-bold text-slate-600 group-hover:text-slate-900 flex items-center gap-3">
+                            <span class="text-lg">🛏️</span> เฟอร์นิเจอร์ครบชุด
+                        </span>
+                        <input type="checkbox" name="amenity" value="has_furniture" onchange="applyFilters()" class="w-5 h-5 rounded-lg border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                    </label>
+
+                    <label class="flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 cursor-pointer transition-all border border-transparent hover:border-slate-100 group">
+                        <span class="text-sm font-bold text-slate-600 group-hover:text-slate-900 flex items-center gap-3">
+                            <span class="text-lg">🚗</span> ที่จอดรถ
+                        </span>
+                        <input type="checkbox" name="amenity" value="has_parking" onchange="applyFilters()" class="w-5 h-5 rounded-lg border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                    </label>
+
+                    <label class="flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 cursor-pointer transition-all border border-transparent hover:border-slate-100 group">
+                        <span class="text-sm font-bold text-slate-600 group-hover:text-slate-900 flex items-center gap-3">
+                            <span class="text-lg">🐾</span> เลี้ยงสัตว์ได้
+                        </span>
+                        <input type="checkbox" name="amenity" value="is_pet_friendly" onchange="applyFilters()" class="w-5 h-5 rounded-lg border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                    </label>
+
+                    <label class="flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 cursor-pointer transition-all border border-transparent hover:border-slate-100 group">
+                        <span class="text-sm font-bold text-slate-600 group-hover:text-slate-900 flex items-center gap-3">
+                            <span class="text-lg">🛗</span> ลิฟต์อาคาร
+                        </span>
+                        <input type="checkbox" name="amenity" value="has_elevator" onchange="applyFilters()" class="w-5 h-5 rounded-lg border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                    </label>
+
+                    <label class="flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 cursor-pointer transition-all border border-transparent hover:border-slate-100 group">
+                        <span class="text-sm font-bold text-slate-600 group-hover:text-slate-900 flex items-center gap-3">
+                            <span class="text-lg">💪</span> ฟิตเนส
+                        </span>
+                        <input type="checkbox" name="amenity" value="has_fitness" onchange="applyFilters()" class="w-5 h-5 rounded-lg border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                    </label>
+
+                    <label class="flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 cursor-pointer transition-all border border-transparent hover:border-slate-100 group">
+                        <span class="text-sm font-bold text-slate-600 group-hover:text-slate-900 flex items-center gap-3">
+                            <span class="text-lg">🔑</span> ระบบคีย์การ์ด
+                        </span>
+                        <input type="checkbox" name="amenity" value="has_keycard" onchange="applyFilters()" class="w-5 h-5 rounded-lg border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                    </label>
+
+                    <label class="flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 cursor-pointer transition-all border border-transparent hover:border-slate-100 group">
+                        <span class="text-sm font-bold text-slate-600 group-hover:text-slate-900 flex items-center gap-3">
+                            <span class="text-lg">👮</span> รปภ. 24 ชม.
+                        </span>
+                        <input type="checkbox" name="amenity" value="has_security_guard" onchange="applyFilters()" class="w-5 h-5 rounded-lg border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                    </label>
+
+                    <label class="flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 cursor-pointer transition-all border border-transparent hover:border-slate-100 group">
+                        <span class="text-sm font-bold text-slate-600 group-hover:text-slate-900 flex items-center gap-3">
+                            <span class="text-lg">🧺</span> บริการซักผ้า
+                        </span>
+                        <input type="checkbox" name="amenity" value="has_laundry" onchange="applyFilters()" class="w-5 h-5 rounded-lg border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                    </label>
+
+                    <label class="flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 cursor-pointer transition-all border border-transparent hover:border-slate-100 group">
+                        <span class="text-sm font-bold text-slate-600 group-hover:text-slate-900 flex items-center gap-3">
+                            <span class="text-lg">💧</span> ตู้น้ำหยอดเหรียญ
+                        </span>
+                        <input type="checkbox" name="amenity" value="has_drinking_water" onchange="applyFilters()" class="w-5 h-5 rounded-lg border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
+                    </label>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 bg-white border-t border-slate-100">
+            <button onclick="toggleFilterSection()" class="w-full bg-[#003399] text-white py-4 rounded-2xl font-bold shadow-xl shadow-blue-900/20 active:scale-95 transition-all flex items-center justify-center gap-2">
+                <span>แสดงผลการค้นหา</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </button>
+        </div>
+    </aside>
+
+
+    <header class="relative overflow-visible pt-32 pb-24 border-b border-slate-100 min-h-[500px] flex items-center z-40">
+    
+        <div class="absolute inset-0 z-0 overflow-hidden">
+            <img src="https://asit.kkc.rmuti.ac.th/wp-content/uploads/2020/05/cropped-97447485_563083364584156_4976620619245289472_n.jpg" 
+                class="w-full h-full object-cover" 
+                alt="RMUTI Khon Kaen">
+            <div class="absolute inset-0 bg-gradient-to-b from-slate-900/60 via-slate-900/40 to-slate-900/80"></div>
+        </div>
+
+        <div class="absolute inset-0 z-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:32px_32px] opacity-20"></div>
+
+        <div class="container mx-auto px-6 relative z-20 text-center">
+            <span class="inline-block px-4 py-1.5 mb-6 text-xs font-bold tracking-widest uppercase bg-orange-500 text-white rounded-full shadow-lg shadow-orange-500/30">
                 Khon Kaen Student Housing
             </span>
-            <h1 class="text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.1] mb-6">
+
+            <h1 class="text-5xl md:text-7xl font-extrabold text-white tracking-tight leading-[1.1] mb-8 drop-shadow-2xl">
                 ระบบฐานข้อมูลหอพักบริเวณ <br>
-                <span class="bg-clip-text text-transparent bg-gradient-to-r from-[#003399] to-[#FF6600]">มหาวิทยาลัยราชมงคลอีสานวิทยาเขตขอนแก่น</span>
+                <span class="text-orange-400">มหาวิทยาลัยราชมงคลอีสานวิทยาเขตขอนแก่น</span>
             </h1>
 
-            <div class="mt-10 max-w-2xl mx-auto flex gap-3 items-center">
-                <div class="flex-1 flex p-2 bg-white rounded-2xl shadow-2xl shadow-slate-200 border border-slate-100">
-                    <input type="text" id="search-input" placeholder="ระบุชื่อหอพัก หรือทำเล..." class="w-full px-4 py-3 bg-transparent outline-none text-slate-600">
-                    <button onclick="handleSearch()" class="bg-[#003399] text-white px-8 py-3 rounded-xl font-semibold hover:bg-[#002266] transition-all shadow-lg shadow-blue-100 active:scale-95">
+            <div class="mt-12 max-w-3xl mx-auto flex flex-col md:flex-row gap-4 items-center">
+                <div class="w-full flex p-2 bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/20">
+                    <input type="text" id="search-input" 
+                        placeholder="ระบุชื่อหอพัก หรือทำเลที่ต้องการ..." 
+                        class="w-full px-6 py-4 bg-transparent outline-none text-slate-800 font-medium placeholder:text-slate-400">
+                    <button onclick="handleSearch()" 
+                            class="bg-[#003399] text-white px-10 py-4 rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                         ค้นหา
                     </button>
                 </div>
-                <button onclick="toggleFilterSection()" class="flex items-center gap-2 px-6 py-3 bg-white border border-slate-100 rounded-2xl shadow-xl text-slate-600 hover:text-[#003399] hover:border-[#003399]/20 transition-all active:scale-95 group">
-                    
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 group-hover:text-[#003399] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                
+                <button onclick="toggleFilterSection()" 
+                        class="flex items-center gap-2 px-8 py-5 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl text-white hover:bg-white/30 transition-all active:scale-95 group shadow-xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                     </svg>
-
-                    <span class="text-sm font-black tracking-wide">คัดกรองหอพัก</span>
-
-                    <i class="fas fa-chevron-down text-[10px] ml-1 opacity-50 group-hover:translate-y-0.5 transition-transform"></i>
+                    <span class="text-sm font-bold">คัดกรอง</span>
                 </button>
             </div>
 
-            <section id="filter-section" class="max-w-5xl mx-auto mt-6 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-2xl hidden animate-in slide-in-from-top-4 duration-300">
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-10">
-
-                    <div class="md:col-span-5 space-y-8 border-r border-slate-50 pr-0 md:pr-10">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">เรียงตาม</label>
-                                <select id="filter-sort" onchange="applyFilters()" class="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-[#003399]">
-                                    <option value="latest">🏠 ล่าสุด</option>
-                                    <option value="price_asc">💰 ราคาต่ำ-สูง</option>
-                                    <option value="price_desc">💵 ราคาสูง-ต่ำ</option>
-                                    <option value="views">🔥 ยอดนิยม</option>
-                                </select>
-                            </div>
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">ประเภท</label>
-                                <select id="filter-type" onchange="applyFilters()" class="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-[#003399]">
-                                    <option value="all">ทั้งหมด</option>
-                                    <option value="หอพักรวม">👫 หอพักรวม</option>
-                                    <option value="หอพักชาย">👨 หอพักชาย</option>
-                                    <option value="หอพักหญิง">👩 หอพักหญิง</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="space-y-4 pt-6 border-t border-slate-50">
-                            <div class="flex justify-between items-center">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">ระยะห่าง (ไม่เกิน)</label>
-                                <span id="distance-display" class="text-sm font-black text-[#003399]">ทั้งหมด</span>
-                            </div>
-                            <div class="px-2">
-                                <input type="range" id="filter-distance" min="0" max="5000" step="100" value="5000" oninput="updateDistanceDisplay(this.value)" onchange="applyFilters()" class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-[#003399]">
-                                <div class="flex justify-between mt-3 text-[10px] font-bold text-slate-400">
-                                    <span>0 ม.</span>
-                                    <span>2.5 กม.</span>
-                                    <span>5 กม.+</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="md:col-span-7 space-y-4">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">สิ่งอำนวยความสะดวก</label>
-
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-y-3 gap-x-2">
-                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
-                                <input type="checkbox" name="amenity" value="has_wifi" onchange="applyFilters()" 
-                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
-                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">📶 WiFi</span>
-                            </label>
-
-                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
-                                <input type="checkbox" name="amenity" value="has_air_conditioner" onchange="applyFilters()" 
-                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
-                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">❄️ แอร์</span>
-                            </label>
-
-                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
-                                <input type="checkbox" name="amenity" value="has_water_heater" onchange="applyFilters()" 
-                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
-                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">🚿 น้ำอุ่น</span>
-                            </label>
-
-                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
-                                <input type="checkbox" name="amenity" value="has_furniture" onchange="applyFilters()" 
-                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
-                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">🛏️ เฟอร์ฯ</span>
-                            </label>
-
-                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
-                                <input type="checkbox" name="amenity" value="has_parking" onchange="applyFilters()" 
-                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
-                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">🚗 ที่จอดรถ</span>
-                            </label>
-
-                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
-                                <input type="checkbox" name="amenity" value="is_pet_friendly" onchange="applyFilters()" 
-                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
-                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">🐾 สัตว์เลี้ยง</span>
-                            </label>
-
-                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
-                                <input type="checkbox" name="amenity" value="has_elevator" onchange="applyFilters()" 
-                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
-                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">🛗 ลิฟต์</span>
-                            </label>
-
-                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
-                                <input type="checkbox" name="amenity" value="has_fitness" onchange="applyFilters()" 
-                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
-                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">💪 ฟิตเนส</span>
-                            </label>
-
-                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
-                                <input type="checkbox" name="amenity" value="has_keycard" onchange="applyFilters()" 
-                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
-                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">🔑 คีย์การ์ด</span>
-                            </label>
-
-                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
-                                <input type="checkbox" name="amenity" value="has_security_guard" onchange="applyFilters()" 
-                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
-                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">👮 รปภ.</span>
-                            </label>
-
-                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
-                                <input type="checkbox" name="amenity" value="has_laundry" onchange="applyFilters()" 
-                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
-                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">🧺 ซักผ้า</span>
-                            </label>
-
-                            <label class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all group">
-                                <input type="checkbox" name="amenity" value="has_drinking_water" onchange="applyFilters()" 
-                                    class="w-5 h-5 rounded border-slate-300 text-[#FF6600] focus:ring-[#FF6600]">
-                                <span class="text-xs font-bold text-slate-600 group-hover:text-slate-900">💧 ตู้น้ำ</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </section>
         </div>
     </header>
 
@@ -301,23 +396,24 @@
         </div>
     </div>
 
-    <div id="lightboxModal" class="fixed inset-0 z-[200] hidden bg-black/95 flex flex-col items-center justify-center p-4">
-        <button onclick="closeLightbox()" class="absolute top-6 right-6 text-white hover:text-indigo-400 transition-colors">
-            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+    <div id="lightboxModal" class="hidden fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-4 backdrop-blur-sm">
+        <button onclick="closeLightbox()" class="absolute top-6 right-6 text-white/70 hover:text-white transition-colors">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
-        
-        <div class="relative w-full max-w-5xl h-[80vh] flex items-center justify-center">
-            <img id="lightboxImg" src="" class="max-w-full max-h-full object-contain transition-all duration-200 scale-95">
+
+        <div class="relative max-w-5xl w-full h-[80vh] flex items-center justify-center">
+            <img id="lightboxImage" src="" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl">
             
-            <button onclick="prevImage()" class="absolute left-0 text-white p-4 hover:text-indigo-400">
-                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+            <button onclick="changeLightboxImage(-1)" class="absolute left-0 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 p-4 rounded-full text-white transition-all">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
             </button>
-            <button onclick="nextImage()" class="absolute right-0 text-white p-4 hover:text-indigo-400">
-                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+
+            <button onclick="changeLightboxImage(1)" class="absolute right-0 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 p-4 rounded-full text-white transition-all">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
             </button>
         </div>
-        
-        <div id="lightboxCaption" class="mt-6 text-white/80 font-medium bg-white/10 px-6 py-2 rounded-full border border-white/20"></div>
+
+        <div id="lightboxCaption" class="mt-6 text-white/50 font-medium tracking-widest uppercase text-sm"></div>
     </div>
 
 
@@ -480,6 +576,42 @@
             <div id="roomDetailContent" class="flex flex-col md:flex-row h-full">
                 </div>
         </div>
+    </div>
+
+
+    <div id="ai-chat-container" class="fixed bottom-10 right-10 z-[60] flex flex-col items-end">
+        <div id="chat-window" class="hidden w-[350px] h-[500px] bg-white rounded-[2rem] shadow-2xl border border-slate-100 flex flex-col overflow-hidden mb-4 animate-in slide-in-from-bottom-5">
+            <div class="p-5 bg-indigo-600 text-white flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-xl">🤖</div>
+                    <div>
+                        <p class="font-bold text-sm">AI ผู้ช่วยหอพัก</p>
+                        <p class="text-[10px] text-indigo-100">Gemini 1.5 Powered</p>
+                    </div>
+                </div>
+                <button onclick="toggleAIChat()" class="hover:bg-white/10 p-1 rounded-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <div id="chat-messages" class="flex-1 p-5 overflow-y-auto space-y-4 bg-slate-50">
+                <div class="flex justify-start">
+                    <div class="bg-white p-3 rounded-2xl rounded-bl-none shadow-sm border border-slate-100 max-w-[80%] text-sm text-slate-700">
+                        สวัสดีครับ! ผมเป็น AI ผู้ช่วยหอพักนี้ มีอะไรสอบถามเกี่ยวกับสิ่งอำนวยความสะดวกหรือรายละเอียดห้องพักไหมครับ?
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-white border-t border-slate-100 flex gap-2">
+                <input type="text" id="chat-input" placeholder="พิมพ์คำถามที่นี่..." 
+                    class="flex-1 bg-slate-100 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                <button onclick="sendChatMessage()" id="send-btn" class="bg-indigo-600 text-white p-2 rounded-xl hover:bg-indigo-700 transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                </button>
+            </div>
+        </div>
+
+        
     </div>
 
     <script src="/static/js/index_decorate.js" defer></script>

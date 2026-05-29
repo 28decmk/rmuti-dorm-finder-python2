@@ -35,6 +35,12 @@ from configmail import conf  # <--- Import มาจากไฟล์ที่�
 from fastapi_mail import FastMail, MessageSchema
 import re
 
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+from ai.schemas_ai import ChatMessage
+from ai.ai_service import get_ai_response
+from ai.security_ai import ai_limiter  # Import ตัวที่เราสร้างไว้
+
 
 # กำหนด Path สำหรับเก็บรูปภาพ
 UPLOAD_DIR = "static/uploads/dorms"
@@ -131,6 +137,13 @@ app = FastAPI(
     title="RMUTI Dorm Finder",
     lifespan=lifespan
 )
+
+
+# เชื่อมต่อ Limiter เข้ากับ FastAPI State
+app.state.limiter = ai_limiter
+# ลงทะเบียน Handler: เมื่อคนยิงเกิน ระบบจะตอบกลับ 429 Too Many Requests อัตโนมัติ
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 
 
 @app.exception_handler(HTTPException)
@@ -560,6 +573,23 @@ async def get_public_dorm_detail(dorm_id: int, db: AsyncSession = Depends(get_db
         "line_id": dorm.line_id,
         "google_map_link": dorm.google_map_link,
         "dorm_type": dorm.dorm_type,
+
+        # ✅ เพิ่มฟิลด์สิ่งอำนวยความสะดวกเหล่านี้ลงไป (ต้องตรงกับที่ JS ใช้เช็ค)
+        "has_wifi": dorm.has_wifi,
+        "has_air_conditioner": dorm.has_air_conditioner,
+        "has_parking": dorm.has_parking,
+        "has_laundry": dorm.has_laundry,
+        "is_pet_friendly": dorm.is_pet_friendly,
+        "has_water_heater": dorm.has_water_heater,
+        "has_elevator": dorm.has_elevator,
+        "has_furniture": dorm.has_furniture,
+        "has_refrigerator": dorm.has_refrigerator,
+        "has_keycard": dorm.has_keycard,
+        "has_cctv": dorm.has_cctv,
+        "has_security_guard": dorm.has_security_guard,
+        "has_fitness": dorm.has_fitness,
+        "has_drinking_water": dorm.has_drinking_water,
+
         "images": [{"filename": img.filename} for img in dorm.images],
         
         # ✅ เพิ่มข้อมูล Room Types ลงไปในก้อนเดียวเลย
@@ -719,11 +749,19 @@ async def create_booking(
     if not dorm:
         raise HTTPException(status_code=404, detail="ไม่พบข้อมูลหอพัก")
 
+    # ตรวจสอบว่าหอพักยังมีห้องว่างเหลือไหม (ระดับหอพัก)
+    if dorm.vacancy_count <= 0:
+        raise HTTPException(status_code=400, detail="ขออภัย หอพักนี้เต็มแล้ว")
+
     room_name = "ไม่ได้ระบุประเภทห้อง"
+    room_type = None
     if booking_in.room_type_id:
         rt_result = await db.execute(select(models.RoomType).where(models.RoomType.id == booking_in.room_type_id))
         room_type = rt_result.scalar_one_or_none()
         if room_type:
+            # ตรวจสอบว่าประเภทห้องนี้ยังมีห้องว่างไหม
+            if room_type.vacancy_count <= 0:
+                raise HTTPException(status_code=400, detail=f"ขออภัย ห้องประเภท {room_type.name} เต็มแล้ว")
             room_name = room_type.name
 
     # 2. บันทึกลงฐานข้อมูล
@@ -748,9 +786,28 @@ async def create_booking(
     )
     
     try:
+
+        # -------------------------------------------------------
+        # 🔥 ส่วนที่เพิ่มใหม่: ลดจำนวนห้องว่าง
+        # -------------------------------------------------------
+
+        dorm.vacancy_count -= 1  # ลดจำนวนห้องว่างของหอพักลง 1
+        
+        if room_type:
+            room_type.vacancy_count -= 1 # ลดจำนวนห้องว่างของประเภทห้องนั้นลง 1
+        # -------------------------------------------------------
+
         db.add(new_booking)
         await db.commit()
         await db.refresh(new_booking)
+
+        # 🔥 เพิ่มบรรทัดนี้: ลบ Cache ของหอพักนี้ทิ้งทันที!
+        if rd:
+            cache_key = f"dorm_detail:{new_booking.dorm_id}"
+            await rd.delete(cache_key)
+            # แถมลบ Cache หน้าแรกด้วยเพื่อให้เลขที่การ์ดหอพักอัปเดต
+            await rd.delete("public_verified_dorms")
+
     except Exception as e:
         await db.rollback()
         # 🚩 ถ้าพังตรงนี้ จะได้รู้ว่าพังเพราะ Database (เช่นลืม Migrate หรือ Column ไม่ตรง)
@@ -778,6 +835,50 @@ async def create_booking(
         pass # ถึงแจ้งเตือนไม่ไป แต่จองสำเร็จแล้วก็ยอมให้ผ่าน
 
     return new_booking
+
+
+# Endpoint สำหรับแชท
+@app.post("/api/public/dorms/{dorm_id}/chat")
+@ai_limiter.limit("5/minute") # 🔒 จำกัด 5 ครั้งต่อนาทีต่อคน
+async def chat_with_dorm_ai(
+    dorm_id: int, 
+    request: Request, # จำเป็นสำหรับ Slowapi
+    chat_input: ChatMessage,
+    db: AsyncSession = Depends(get_db),
+    rd = Depends(get_redis)
+):
+    # --- ขั้นตอนที่ 1: ดึงข้อมูลหอพัก ---
+    # เราพยายามดึงจาก Redis ก่อน เพราะเราเพิ่งสั่งเซ็ตไว้ตอนที่คนกดดูรายละเอียด
+    cache_key = f"dorm_detail:{dorm_id}"
+    cached_data = await rd.get(cache_key)
+    
+    if cached_data:
+        # ถ้ามีใน Cache (ซึ่งควรจะมี) ให้โหลดมาเป็น dict
+        dorm_data = json.loads(cached_data)
+    else:
+        # ถ้าไม่มีใน Cache (เช่น Cache หมดอายุ) ให้คืนค่าบอกให้ User รีเฟรชหน้าเว็บ
+        # หรือจะเขียน Logic ดึง DB ใหม่ตรงนี้ก็ได้ แต่เพื่อความเร็ว แนะนำแบบนี้ครับ
+        raise HTTPException(status_code=400, detail="กรุณารีเฟรชหน้ารายละเอียดหอพักอีกครั้ง")
+
+    # --- ขั้นตอนที่ 2: ตรวจสอบความยาวข้อความ (Security เพิ่มเติม) ---
+    if len(chat_input.message) > 300:
+        raise HTTPException(status_code=400, detail="คำถามยาวเกินไป กรุณาสรุปสั้นๆ ครับ")
+
+    # --- ขั้นตอนที่ 3: ส่งไปให้ Gemini วิเคราะห์ ---
+    try:
+        # เรียกใช้ฟังก์ชันที่เราเขียนไว้ใน ai_service.py
+        ai_answer = await get_ai_response(dorm_data, chat_input.message)
+        
+        return {
+            "status": "success",
+            "answer": ai_answer
+        }
+    except Exception as e:
+        print(f"Chat API Error: {e}")
+        raise HTTPException(status_code=500, detail="ขออภัยครับ ระบบ AI ขัดข้องชั่วคราว")
+
+
+
 
 
 
@@ -2381,6 +2482,7 @@ async def update_booking_status(
     booking_id: int,
     status_update: dict,
     db: AsyncSession = Depends(get_db),
+    rd = Depends(get_redis), # 🚨 เพิ่มการฉีด Redis เข้ามาเพื่อลบ Cache
     payload: dict = Depends(owner_only)
 ):
     new_status = status_update.get("status")
@@ -2388,13 +2490,12 @@ async def update_booking_status(
 
     # ใช้ async with db.begin() เพื่อทำ Transaction
     async with db.begin():
-        # 1. ค้นหาและ Lock เฉพาะตัว Booking ก่อน (ไม่ทำ Join ตรงนี้เพื่อเลี่ยง Error)
-        # เราเช็กสิทธิ์โดยการ Join ในสเต็ปนี้ได้ แต่ต้องระวังเรื่องการใช้ with_for_update
+        # 1. ค้นหาและ Lock เฉพาะตัว Booking
         stmt = select(models.DormBooking)\
             .join(models.Dormitory)\
             .where(models.DormBooking.id == booking_id)\
             .where(models.Dormitory.owner_id == owner_id)\
-            .with_for_update(of=models.DormBooking) # 🔥 Lock เฉพาะตาราง Booking
+            .with_for_update(of=models.DormBooking)
             
         result = await db.execute(stmt)
         booking = result.scalar_one_or_none()
@@ -2402,8 +2503,7 @@ async def update_booking_status(
         if not booking:
             raise HTTPException(status_code=404, detail="ไม่พบข้อมูลการจอง")
 
-        # 2. ดึงข้อมูล Dormitory แยกออกมา (เพื่อลด/เพิ่มจำนวนห้องว่าง)
-        # เนื่องจากอยู่ใน Transaction เดียวกัน ข้อมูลจะถูกป้องกันไว้ระดับหนึ่งอยู่แล้ว
+        # 2. ดึงข้อมูล Dormitory ออกมาเพื่อเตรียมปรับจำนวนห้องว่าง
         dorm_stmt = select(models.Dormitory).where(models.Dormitory.id == booking.dorm_id).with_for_update()
         dorm_result = await db.execute(dorm_stmt)
         dorm = dorm_result.scalar_one_or_none()
@@ -2413,24 +2513,39 @@ async def update_booking_status(
 
         old_status = booking.status
 
-        # 3. Logic การจัดการจำนวนห้องว่าง
-        # กรณีที่ 1: เปลี่ยนจากอะไรก็ได้ที่ไม่ใช่ confirmed -> เป็น confirmed
-        if old_status != "confirmed" and new_status == "confirmed":
-            if dorm.vacancy_count > 0:
-                dorm.vacancy_count -= 1
-            else:
-                # ถ้าห้องเต็ม ให้ Raise Error ออกไปเลย (จะ rollback อัตโนมัติ)
-                raise HTTPException(status_code=400, detail="ไม่สามารถยืนยันได้ เนื่องจากห้องว่างเต็มแล้ว")
-
-        # กรณีที่ 2: เปลี่ยนจาก confirmed -> เป็นอย่างอื่น (ยกเลิกหรือรอ)
-        elif old_status == "confirmed" and new_status != "confirmed":
+        # 3. Logic การจัดการจำนวนห้องว่าง (ปรับใหม่ให้สัมพันธ์กับการจองหน้าเว็บ)
+        
+        # กรณีที่ 1: คืนค่าห้องว่าง (เมื่อสถานะเดิมคือ pending หรือ confirmed แล้วถูกเปลี่ยนเป็น cancelled หรือ rejected)
+        if old_status in ["pending", "confirmed"] and new_status in ["cancelled", "rejected"]:
+            # คืนค่าในระดับหอพัก (Dormitory)
             dorm.vacancy_count += 1
+            
+            # 🚨 คืนค่าในระดับประเภทห้อง (RoomType) ด้วย
+            if booking.room_type_id:
+                rt_stmt = select(models.RoomType).where(models.RoomType.id == booking.room_type_id).with_for_update()
+                rt_result = await db.execute(rt_stmt)
+                room_type = rt_result.scalar_one_or_none()
+                if room_type:
+                    room_type.vacancy_count += 1
 
+        # กรณีที่ 2: กดยืนยัน (จากเดิม pending เป็น confirmed) 
+        # -> ไม่ต้องทำอะไรกับตัวเลข เพราะตอนนักศึกษากดจอง ระบบได้หักลบไปแล้ว 1 ห้อง
+        
         # 4. อัปเดตสถานะการจอง
         booking.status = new_status
         
-        # จบ block นี้จะทำการ Commit ทั้ง Booking และ Dormitory พร้อมกัน
-        
+        # --- จบ transaction: ข้อมูลจะถูกบันทึกลง Database ---
+
+    # 5. ล้าง Cache (ทำนอก block transaction เพื่อความรวดเร็ว)
+    if rd:
+        try:
+            # ลบ cache รายละเอียดหอพักเพื่อให้หน้า Modal อัปเดตเลขใหม่
+            await rd.delete(f"dorm_detail:{dorm.id}")
+            # ลบ cache หน้าแรกเพื่อให้การ์ดหอพักอัปเดตเลขใหม่
+            await rd.delete("public_verified_dorms")
+        except Exception as e:
+            print(f"Redis Delete Error: {e}")
+            
     return {
         "status": "success", 
         "new_vacancy_count": dorm.vacancy_count,

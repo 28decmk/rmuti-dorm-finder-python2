@@ -1626,9 +1626,12 @@ function getStatusConfig(status) {
 
 // ปุ่ม "ยืนยัน" และ "ยกเลิก" คำขอจอง
 async function updateBookingStatus(bookingId, newStatus) {
-    const confirmText = newStatus === 'confirmed' 
-        ? 'ยืนยันการจอง? (ระบบจะลดจำนวนห้องว่างลง 1 ห้อง)' 
-        : 'ยกเลิกการจอง?';
+    let confirmText = '';
+    if (newStatus === 'confirmed') {
+        confirmText = 'ยืนยันการจองนี้?';
+    } else if (newStatus === 'cancelled' || newStatus === 'rejected') {
+        confirmText = 'ยกเลิกการจอง? (ระบบจะคืนจำนวนห้องว่างกลับไป 1 ห้อง)';
+    }
         
     if (!confirm(confirmText)) return;
 

@@ -50,9 +50,9 @@
 
 ## System Architecture
 
-[เปิดแผนภาพบน Canva — หน้า 2: System Architecture — Whiteboard](https://www.canva.com/design/DAHY3t3zQZI/view)
+[เปิดแผนภาพบน Canva — หน้า 2: System Architecture — Whiteboard](https://canva.link/o9k0owcyq2qxdc1)
 
-[![System Architecture](docs/assets/system-architecture.png)](https://www.canva.com/design/DAHY3t3zQZI/view)
+[![System Architecture](docs/assets/system-architecture.png)](https://canva.link/o9k0owcyq2qxdc1)
 
 ระบบเป็น **Monolithic web application** มี FastAPI แอปเดียวให้บริการทั้ง HTML, static files, HTTP APIs และ WebSocket โดยแยกหน้าที่ภายในเป็นส่วนดังนี้
 

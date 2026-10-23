@@ -1,0 +1,72 @@
+[
+  {
+    "id": 77,
+    "title": "Tailwind CSS",
+    "category": "Framework",
+    "route": "https://svgl.app/library/tailwindcss.svg",
+    "wordmark": {
+      "light": "https://svgl.app/library/tailwindcss-wordmark.svg",
+      "dark": "https://svgl.app/library/tailwindcss-wordmark-dark.svg"
+    },
+    "brandUrl": "https://tailwindcss.com/brand",
+    "url": "https://tailwindcss.com/"
+  },
+  {
+    "id": 109,
+    "title": "JavaScript",
+    "category": "Language",
+    "route": "https://svgl.app/library/javascript.svg",
+    "url": "https://developer.mozilla.org/docs/Web/JavaScript"
+  },
+  {
+    "id": 137,
+    "title": "Docker",
+    "category": "Software",
+    "route": "https://svgl.app/library/docker.svg",
+    "url": "https://www.docker.com/",
+    "brandUrl": "https://www.docker.com/company/newsroom/media-resources/"
+  },
+  {
+    "id": 180,
+    "title": "PostgreSQL",
+    "category": "Database",
+    "route": "https://svgl.app/library/postgresql.svg",
+    "wordmark": {
+      "light": "https://svgl.app/library/postgresql-wordmark-light.svg",
+      "dark": "https://svgl.app/library/postgresql-wordmark-dark.svg"
+    },
+    "url": "https://www.postgresql.org/"
+  },
+  {
+    "id": 183,
+    "title": "Redis",
+    "category": "Database",
+    "route": "https://svgl.app/library/redis.svg",
+    "url": "https://redis.io/"
+  },
+  {
+    "id": 212,
+    "title": "Python",
+    "category": "Language",
+    "route": "https://svgl.app/library/python.svg",
+    "url": "https://www.python.org/"
+  },
+  {
+    "id": 275,
+    "title": "FastAPI",
+    "category": "Framework",
+    "route": "https://svgl.app/library/fastapi.svg",
+    "url": "https://fastapi.tiangolo.com/"
+  },
+  {
+    "id": 561,
+    "title": "Gemini",
+    "category": [
+      "Google",
+      "AI"
+    ],
+    "route": "https://svgl.app/library/gemini.svg",
+    "wordmark": "https://svgl.app/library/gemini_wordmark.svg",
+    "url": "https://gemini.google.com/"
+  }
+]

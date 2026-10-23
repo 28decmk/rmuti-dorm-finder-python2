@@ -21,8 +21,8 @@ import json
 from app import schemas, models
 import uuid
 from typing import List, Optional
-from sqlalchemy import select, func, update, delete, or_, and_, desc, asc
-from sqlalchemy.orm import selectinload, Session, joinedload
+from sqlalchemy import select, func, update, delete, or_, and_, desc, asc, exists
+from sqlalchemy.orm import selectinload, Session, joinedload, defer
 from fastapi.encoders import jsonable_encoder
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
@@ -30,17 +30,26 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from app.models.dormitory import Dormitory, DormViewLog
 from pydantic import BaseModel
-from app.schemas import ViewRecordRequest
+from app.schemas import ViewRecordRequest, DormitoryResponse
 from configmail import conf  # <--- Import มาจากไฟล์ที่เราสร้าง
 from fastapi_mail import FastMail, MessageSchema
 import re
 
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
-from ai.schemas_ai import ChatMessage
+from ai.schemas_ai import ChatMessage, AISearchResponse
 from ai.ai_service import get_ai_response
 from ai.security_ai import ai_limiter  # Import ตัวที่เราสร้างไว้
+from ai.ai_search_service import get_ai_intent, ai_rerank_results
 
+#from app.routes.debug import router as debug_router
+
+from search_api import router as search_router
+
+import pprint
+
+from services.vector_search_service import vector_search
+from services.ranking_service import rerank_results
 
 # กำหนด Path สำหรับเก็บรูปภาพ
 UPLOAD_DIR = "static/uploads/dorms"
@@ -73,7 +82,15 @@ async def cleanup_old_view_logs(db: AsyncSession):
         
         # 3. ประมวลผลคำสั่ง
         result = await db.execute(stmt)
-        await db.commit()
+
+        candidate_dorms = result.scalars().all()
+
+        print(
+            "SQL CANDIDATES =",
+            len(candidate_dorms)
+        )
+
+        dorms = candidate_dorms
         
         if result.rowcount > 0:
             print(f"🧹 [Cleanup] ลบ Log เก่าเรียบร้อยแล้ว ทั้งหมด {result.rowcount} รายการ")
@@ -495,7 +512,18 @@ async def get_public_dorms(
         query = query.order_by(models.Dormitory.created_at.desc())
 
     # 4. Execute Query
-    result = await db.execute(query.options(selectinload(models.Dormitory.images)))
+    result = await db.execute(
+        query.options(
+            defer(models.Dormitory.embedding),
+
+            selectinload(models.Dormitory.images),
+            selectinload(models.Dormitory.owner),
+            selectinload(models.Dormitory.draft),
+
+            selectinload(models.Dormitory.room_types)
+                .selectinload(models.RoomType.room_images)
+        )
+    )
     dorms = result.scalars().all()
 
     # 5. กรองระยะทางด้วย Python (เฉพาะถ้ามีการส่ง max_distance มา)
@@ -520,8 +548,10 @@ async def get_public_dorms(
                 continue
         dorms = filtered_results
 
+    print("Dorm count:", len(dorms))
+
     # 6. ส่งข้อมูลกลับ
-    safe_data = jsonable_encoder(dorms)
+    return dorms
 
     if not is_filtering:
         try:
@@ -693,46 +723,375 @@ async def sync_record_view(db: AsyncSession, rd, dorm_id: int, visitor_id: str, 
         print(f"🚨 Error: {str(e)}")
 
 
+def extract_search_params(text: str):
+    # ใช้ Regex ที่เจาะจงขึ้นเพื่อป้องกันการสกัดเลขที่ไม่ใช่ราคาหรือระยะทาง
+    price_match = re.search(r'(\d{3,5})\s*(บาท|บ\.|ราคา)', text)
+    dist_match = re.search(r'(\d+)\s*(เมตร|ม\.|กม\.|km)', text)
+    
+    price = int(price_match.group(1)) if price_match else None
+    dist = int(dist_match.group(1)) if dist_match else None
+    
+    return price, dist
+
+def extract_price(text: str):
+    """สกัดเฉพาะราคาจากข้อความ"""
+    # มองหาตัวเลขที่ตามด้วยคำว่า บาท, บ., หรือ ราคา
+    match = re.search(r'(\d{3,5})\s*(บาท|บ\.|ราคา)', text)
+    return int(match.group(1)) if match else None
+
+def extract_distance(text: str):
+    """สกัดเฉพาะระยะทางจากข้อความ"""
+    # มองหาตัวเลขที่ตามด้วย เมตร, ม., กม., km
+    match = re.search(r'(\d+)\s*(เมตร|ม\.|กม\.|km)', text)
+    return int(match.group(1)) if match else None
+
+
+def extract_number(text):
+    if not text:
+        return 999999  # ให้ค่าเยอะๆ ไว้ท้ายสุดถ้าไม่มีข้อมูล
+    # ใช้ Regex หาตัวเลขใน string เช่น "500 เมตร" -> "500"
+    numbers = re.findall(r'\d+', str(text))
+    if numbers:
+        return int(numbers[0]) # เอาตัวเลขแรกที่เจอ
+    return 999999 # กรณีไม่มีตัวเลข
+
+
 # API ค้นหาหอพัก
-@app.get("/api/public/search", response_model=List[schemas.DormitoryResponse])
+@app.get("/api/public/search", response_model=AISearchResponse)
 async def search_dorms(
     q: str = "", 
     db: AsyncSession = Depends(get_db),
     rd = Depends(get_redis)
 ):
+    # 0. Early Exit
     if not q or len(q.strip()) < 2:
-        return []
-
+        return {
+            "is_clear": True,
+            "suggested_questions": [],
+            "dorms": [],
+            "filters": AIFilters().model_dump()
+        }
+ 
     search_query = q.strip()
-    cache_key = f"search_results:{search_query}"
+    cache_key = f"ai_search_results:{search_query}"
+ 
+    # 1. AI วิเคราะห์ Intent (หัวใจของระบบ)
+    ai_analysis = await get_ai_intent(search_query) 
 
-    # 1. ลองดึงจาก Redis ก่อน
-    cached = await rd.get(cache_key)
-    if cached:
-        return json.loads(cached)
+    print("========== AI ANALYSIS ==========")
+    pprint.pp(ai_analysis)
+    print("=================================")
+    print("SORT PREF =", ai_analysis.get("sort_preference"))
 
-    # 2. ถ้าไม่มีใน Cache ให้ค้นใน DB
-    # ค้นจากชื่อ (name) หรือ รายละเอียด (description) หรือ ที่อยู่ (address)
-    result = await db.execute(
-        select(models.Dormitory)
-        .where(
-            models.Dormitory.is_verified == True,
-            or_(
-                models.Dormitory.name.ilike(f"%{search_query}%"),
-                models.Dormitory.description.ilike(f"%{search_query}%"),
-                models.Dormitory.address.ilike(f"%{search_query}%")
-            )
-        )
-        .options(selectinload(models.Dormitory.images))
-        .limit(20) # จำกัดผลลัพธ์เพื่อความเร็ว
+    filters = ai_analysis.get("filters", {})
+    sort_pref = (
+        ai_analysis.get("sort_preference")
+        or ai_analysis.get("sort_by")
+        or "default"
     )
-    dorms = result.scalars().all()
-    safe_data = jsonable_encoder(dorms)
 
-    # 3. เก็บลง Redis (ตั้งเวลา 5-10 นาทีก็พอสำหรับการค้นหา)
-    await rd.setex(cache_key, 600, json.dumps(safe_data))
+    print("FINAL SORT PREF =", sort_pref)
 
-    return safe_data
+
+    boolean_keys = [
+        "has_wifi",
+        "has_air_conditioner",
+        "has_parking",
+        "has_laundry",
+        "is_pet_friendly",
+        "has_water_heater",
+        "has_elevator",
+        "has_furniture",
+        "has_refrigerator",
+        "has_keycard",
+        "has_cctv",
+        "has_security_guard",
+        "has_fitness",
+        "has_drinking_water",
+    ]
+
+    for key in boolean_keys:
+        if key in ai_analysis and key not in filters:
+            filters[key] = ai_analysis[key]
+        
+    # ถ้า AI มองว่าคำถามไม่ชัดเจน (is_clear = False)
+    if not ai_analysis.get("is_clear", True):
+        return {
+            "is_clear": False, 
+            "suggested_questions": ai_analysis.get("suggested_questions", []), 
+            "dorms": [],
+            "filters": filters
+        }
+ 
+    # 2. เริ่มสร้าง SQL Query (เฉพาะส่วนการกรอง)
+    stmt = select(models.Dormitory).outerjoin(
+        models.Dormitory.room_types
+    )
+
+    query_conditions = [
+        models.Dormitory.verification_status == "approved"
+    ]
+
+    is_semantic_search = (
+        sort_pref == "relevance"
+        and bool(filters.get("search_keyword"))
+    )
+ 
+    useless_words = ["หา", "ดู", "ค้นหา", "แนะนำ", "ช่วย", "หอพัก", "หอ", "ที่", "มี"]
+ 
+    desc_keyword = filters.get("search_keyword")
+ 
+    # A. Keyword Filter (ค้นใน name, description, address)
+    if desc_keyword and not is_semantic_search:
+        kw_clean = desc_keyword
+        for word in useless_words:
+            kw_clean = kw_clean.replace(word, "").strip()
+
+        if kw_clean:
+            keywords = kw_clean.split()
+            desc_conditions = [
+                or_(
+                    models.Dormitory.name.ilike(f"%{word}%"),
+                    models.Dormitory.description.ilike(f"%{word}%"),
+                    models.Dormitory.address.ilike(f"%{word}%")
+                )
+                for word in keywords
+            ]
+            query_conditions.append(or_(*desc_conditions))
+ 
+    # B. กรองข้อมูลอื่นๆ (ราคา, ประเภท)
+    if filters.get("dorm_type"):
+        query_conditions.append(models.Dormitory.dorm_type == filters["dorm_type"])
+ 
+    price_val = filters.get("price_max")
+    if price_val and price_val < 99999:
+        query_conditions.append(models.RoomType.price <= price_val)
+ 
+    print(f"DEBUG FILTERS BEFORE MAP: {filters}")
+ 
+    # C. Normalize filters
+    normalized_filters = {}
+    normalized_filters.update(filters)
+ 
+    if isinstance(filters.get("amenities"), dict):
+        normalized_filters.update(filters["amenities"])
+ 
+    field_map = {
+        "cctv": "has_cctv",
+        "wifi": "has_wifi",
+        "air_conditioner": "has_air_conditioner",
+        "parking": "has_parking",
+        "laundry": "has_laundry",
+        "pet_friendly": "is_pet_friendly",
+        "water_heater": "has_water_heater",
+        "elevator": "has_elevator",
+        "furniture": "has_furniture",
+        "refrigerator": "has_refrigerator",
+        "keycard": "has_keycard",
+        "security_guard": "has_security_guard",
+        "fitness": "has_fitness",
+        "drinking_water": "has_drinking_water"
+    }
+ 
+    for key, val in list(normalized_filters.items()):
+        if key in field_map:
+            normalized_filters[field_map[key]] = val
+ 
+    # D. กรอง Boolean Features
+    boolean_features = [
+        "has_wifi", "has_air_conditioner", "has_parking", "has_laundry", 
+        "is_pet_friendly", "has_water_heater", "has_elevator", "has_furniture", 
+        "has_refrigerator", "has_keycard", "has_cctv", "has_security_guard", 
+        "has_fitness", "has_drinking_water"
+    ]
+ 
+    for feature in boolean_features:
+        if normalized_filters.get(feature) is True: 
+            query_conditions.append(getattr(models.Dormitory, feature) == True)
+            print(f"DEBUG: Added condition {feature} == True")
+ 
+    # 3. ดึง Candidate Dorms จาก SQL Filter
+    stmt = (
+        stmt.where(and_(*query_conditions))
+        .options(
+            selectinload(models.Dormitory.images),
+
+            selectinload(
+                models.Dormitory.room_types
+            ).selectinload(
+                models.RoomType.room_images
+            ),
+
+            selectinload(models.Dormitory.owner),
+            selectinload(models.Dormitory.draft),
+        )
+        .distinct()
+        .limit(300)
+    )
+    print("SEMANTIC SEARCH =", is_semantic_search)
+
+    result = await db.execute(stmt)
+    candidate_dorms = result.scalars().all()
+
+    print("CANDIDATE DORMS =", len(candidate_dorms))
+ 
+    # 4. Fallback: ถ้าไม่เจอผลและมี boolean filter → ค้นคำภาษาไทยใน description แทน
+    if not candidate_dorms and any(normalized_filters.get(f) is True for f in boolean_features):
+        print("DEBUG: No results with boolean filters, falling back to description search")
+ 
+        relaxed_conditions = [models.Dormitory.verification_status == "approved"]
+ 
+        if filters.get("search_keyword"):
+            kw = filters["search_keyword"]
+            for word in useless_words:
+                kw = kw.replace(word, "").strip()
+            if kw:
+                relaxed_conditions.append(
+                    or_(
+                        models.Dormitory.description.ilike(f"%{kw}%"),
+                        models.Dormitory.name.ilike(f"%{kw}%"),
+                    )
+                )
+ 
+        feature_thai_map = {
+            "has_fitness":        ["ฟิตเนส", "fitness"],
+            "has_cctv":           ["กล้องวงจรปิด", "cctv", "กล้อง"],
+            "has_elevator":       ["ลิฟต์", "elevator"],
+            "has_parking":        ["ที่จอดรถ", "parking", "จอดรถ"],
+            "has_wifi":           ["wifi", "ไวไฟ", "อินเตอร์เน็ต"],
+            "is_pet_friendly":    ["สัตว์เลี้ยง", "หมา", "แมว"],
+            "has_water_heater":   ["เครื่องทำน้ำอุ่น", "น้ำอุ่น"],
+            "has_security_guard": ["รปภ", "ยาม", "รักษาความปลอดภัย"],
+            "has_drinking_water": ["ตู้น้ำ", "น้ำดื่ม"],
+            "has_laundry":        ["ซักผ้า", "ซักรีด", "เครื่องซัก"],
+            "has_air_conditioner":["แอร์", "เครื่องปรับอากาศ"],
+            "has_furniture":      ["เฟอร์นิเจอร์", "เครื่องใช้", "ครบครัน"],
+            "has_refrigerator":   ["ตู้เย็น", "refrigerator"],
+            "has_keycard":        ["คีย์การ์ด", "keycard", "บัตร"],
+        }
+ 
+        desc_fallback_conditions = []
+        for feature, thai_words in feature_thai_map.items():
+            if normalized_filters.get(feature) is True:
+                for tw in thai_words:
+                    desc_fallback_conditions.append(
+                        models.Dormitory.description.ilike(f"%{tw}%")
+                    )
+ 
+        if desc_fallback_conditions:
+            relaxed_conditions.append(or_(*desc_fallback_conditions))
+ 
+        fallback_stmt = (
+            select(models.Dormitory)
+            .where(and_(*relaxed_conditions))
+            .options(
+                selectinload(models.Dormitory.images),
+
+                selectinload(
+                    models.Dormitory.room_types
+                ).selectinload(
+                    models.RoomType.room_images
+                ),
+
+                selectinload(models.Dormitory.owner),
+                selectinload(models.Dormitory.draft),
+            )
+            .distinct()
+            .limit(300)
+        )
+
+        result2 = await db.execute(fallback_stmt)
+        candidate_dorms = result2.scalars().all()
+        print(f"DEBUG: Fallback found {len(candidate_dorms)} dorms")
+ 
+    # 5. เรียงลำดับ (Post-processing) ตาม Pipeline ใหม่
+    if sort_pref == "distance":
+        dorms = sorted(candidate_dorms, key=lambda x: extract_number(x.distance_to_rmuti))
+
+    elif sort_pref == "relevance":
+        # ── Pipeline: pgvector → Rule Rerank → Gemini Rerank ──
+
+        # Step 5.1: pgvector semantic search (จำกัด scope ไว้เฉพาะ candidate_ids)
+        candidate_ids = [d.id for d in candidate_dorms]
+
+        print("VECTOR SEARCH INPUT =", len(candidate_ids))
+
+        vector_results = await vector_search(
+            query=search_query,
+            candidate_ids=candidate_ids,
+            limit=50
+        )
+
+        print("VECTOR SEARCH OUTPUT =", len(vector_results))
+
+        # Step 5.2: Rule-based Rerank (ranking_service.py)
+        ranked_results = rerank_results(
+            query=search_query,
+            results=vector_results
+        )
+
+        print("RULE RERANK OUTPUT =", len(ranked_results))
+
+        # Step 5.3: Gemini Rerank (top 20 เท่านั้น เพื่อประหยัด token)
+        sorted_ids = await ai_rerank_results(
+            ranked_results[:20],
+            search_query
+        )
+
+        candidate_map = {
+            d.id: d
+            for d in candidate_dorms
+        }
+
+        dorms = [
+            candidate_map[id]
+            for id in sorted_ids
+            if id in candidate_map
+        ]
+
+        print("GEMINI RERANK OUTPUT =", len(dorms))
+
+    else:
+        dorms = sorted(candidate_dorms, key=lambda x: x.total_views, reverse=True)
+ 
+
+    print("DORMS TYPE =", type(dorms))
+
+    if dorms:
+        print("FIRST ITEM TYPE =", type(dorms[0]))
+
+        if isinstance(dorms[0], dict):
+            print("FIRST ITEM ID =", dorms[0]["id"])
+        else:
+            print("FIRST ITEM ID =", dorms[0].id)
+
+    # 6. ส่งผลลัพธ์
+    dorm_data = [
+        DormitoryResponse.model_validate(
+            dorm,
+            from_attributes=True
+        ).model_dump()
+        for dorm in dorms
+    ]
+
+    response_data = {
+        "is_clear": True,
+        "suggested_questions": [],
+        "dorms": dorm_data,
+        "filters": filters
+    }
+
+    await rd.setex(
+        cache_key,
+        600,
+        json.dumps(
+            response_data,
+            ensure_ascii=False,
+            default=str
+        )
+    )
+
+    return response_data
 
 
 # API สำหรับนักศึกษาทำการจอง
@@ -2601,3 +2960,7 @@ async def test_redis(rd = Depends(get_redis)):
     except Exception as e:
         return {"status": "Redis connection failed", "error": str(e)}
     
+
+#app.include_router(debug_router)
+
+app.include_router(search_router)

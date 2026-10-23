@@ -177,26 +177,64 @@ document.getElementById('registerForm').addEventListener('submit', async(e) => {
 
 
 // ฟังก์ชันสำหรับโหลดหอพักแนะนำมาแสดงที่หน้าแรก
-async function fetchRecommendedDorms(targetUrl = '/api/public/dorms') {
+async function fetchRecommendedDorms(targetUrl = null) {
     const container = document.getElementById('dorm-list-container');
 
     // แสดงสถานะกำลังโหลด
     container.innerHTML = `
         <div class="col-span-full text-center py-20">
             <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-t-transparent"></div>
-            <p class="mt-4 text-slate-500 font-medium">กำลังค้นหาหอพักที่ดีที่สุดสำหรับคุณ...</p>
+            <p class="mt-4 text-slate-500 font-medium">กำลังค้นหาและคัดสรรหอพักที่ดีที่สุดด้วย AI...</p>
         </div>`;
 
     try {
-        // ใช้ targetUrl ที่ส่งมา (ถ้าไม่มีจะเป็นหน้าแรก + ป้องกัน Cache ด้วย TimeStamp)
-        const finalUrl = targetUrl.includes('?') ?
-            `${targetUrl}&t=${new Date().getTime()}` :
-            `${targetUrl}?t=${new Date().getTime()}`;
+        // 🌟 แก้ไขจุดสำคัญ: ถ้าไม่มีการส่ง URL มา (โหลดหน้าแรกดั้งเดิม) ให้ใช้ /api/public/dorms
+        // แต่ถ้าเป็นการค้นหา ให้ใช้ค่า targetUrl ที่ส่งมาจากช่องพิมพ์ค้นหา
+        let finalBaseUrl = targetUrl ? targetUrl : '/api/public/dorms';
+        
+        // ผูก TimeStamp เพื่อป้องกัน Cache
+        const finalUrl = finalBaseUrl.includes('?') ?
+            `${finalBaseUrl}&t=${new Date().getTime()}` :
+            `${finalBaseUrl}?t=${new Date().getTime()}`;
 
         const response = await fetch(finalUrl);
         if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลได้');
 
-        const dorms = await response.json();
+        const result = await response.json();
+
+        // -------------------------------------------------------------
+        // [เพิ่มใหม่] เงื่อนไขที่ 1: หากคำค้นหาคลุมเครือ (AI ส่งกลับมาว่า is_clear: false)
+        // -------------------------------------------------------------
+        if (result && result.is_clear === false) {
+            let tagsHTML = '';
+            
+            // วนลูปนำคำถามแนะนำ (suggested_questions) จาก AI มาทำเป็นปุ่มกด (Tags)
+            if (result.suggested_questions && result.suggested_questions.length > 0) {
+                result.suggested_questions.forEach(question => {
+                    tagsHTML += `
+                        <button onclick="appendSearchTag('${question}')" 
+                                class="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-2xl text-sm font-bold hover:bg-indigo-600 hover:text-white transition-all duration-300 transform active:scale-95 shadow-sm border border-indigo-100 flex items-center gap-1.5">
+                            ✨ ${question}
+                        </button>`;
+                });
+            }
+
+            container.innerHTML = `
+                <div class="col-span-full text-center py-16 px-8 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 rounded-[3rem] border border-indigo-100/80 shadow-inner">
+                    <div class="mb-4 flex justify-center text-4xl">🤖</div>
+                    <h4 class="text-xl font-bold text-slate-800 mb-2">พี่ AI อยากรู้ข้อมูลเพิ่มเติมอีกนิดนึงค่ะ</h4>
+                    <p class="text-slate-500 max-w-md mx-auto mb-6 text-sm">คุณพิมพ์ข้อมูลสั้นเกินไป ลองคลิกเลือกรายละเอียดเพิ่มเติมด้านล่างนี้เพื่อให้ระบบค้นหาได้แม่นยำขึ้นนะคะ:</p>
+                    <div class="flex flex-wrap justify-center gap-3 max-w-2xl mx-auto">
+                        ${tagsHTML || '<p class="text-slate-400">ระบุรายละเอียดเพิ่มเติม เช่น ช่วงราคา หรือทำเล</p>'}
+                    </div>
+                </div>`;
+            return; // หยุดทำงาน เพื่อรอรับข้อมูลที่ชัดเจนขึ้นจากผู้ใช้
+        }
+
+        // -------------------------------------------------------------
+        // [ปรับปรุง] การแกะห่อข้อมูลให้รองรับทั้ง Array ดั้งเดิม และโครงสร้าง Object ของ AI
+        // -------------------------------------------------------------
+        const dorms = (result && result.dorms) ? result.dorms : result;
 
         // กรณีไม่มีข้อมูล
         if (!dorms || dorms.length === 0) {
@@ -207,77 +245,84 @@ async function fetchRecommendedDorms(targetUrl = '/api/public/dorms') {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
                     </div>
-                    <p class="text-slate-500 text-lg font-medium">ไม่พบข้อมูลหอพักที่คุณต้องการ</p>
-                    <button onclick="location.reload()" class="mt-4 text-indigo-600 underline">ดูหอพักทั้งหมด</button>
+                    <p class="text-slate-500 text-lg font-medium">ไม่พบข้อมูลหorพักที่คุณต้องการในขณะนี้</p>
+                    <button onclick="location.reload()" class="mt-4 text-indigo-600 underline font-bold">ดูหอพักทั้งหมด</button>
                 </div>`;
             return;
         }
 
         container.innerHTML = ''; // ล้าง Loading
 
-        // --- ส่วน UI ใหม่ในฟังก์ชัน fetchRecommendedDorms ---
-
+        // --- ใช้ Logic วาดโครงสร้าง Card สไตล์ Agoda ตัวเดิมของคุณเป๊ะๆ ---
         dorms.forEach(dorm => {
             const imageUrl = (dorm.images && dorm.images.length > 0) ?
                 `/static/uploads/dorms/${dorm.images[0].filename}` :
                 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800';
 
-            // 1. ปรับ Badge สถานะให้ดูทันสมัยขึ้น (สีเขียว Agoda)
             const vacancyBadge = dorm.vacancy_count > 0 ?
                 `<span class="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-emerald-600 shadow-sm border border-emerald-100">ว่าง ${dorm.vacancy_count} ห้อง</span>` :
                 `<span class="bg-slate-900/80 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm">เต็มแล้ว</span>`;
 
-            // 2. ปรับตัวเลขยอดเข้าชม
             const viewCountHTML = `
-                <div class="flex items-center gap-1 text-slate-400 text-[11px] font-bold">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                    <span>${(dorm.total_views || 0).toLocaleString()}</span>
+                <div class="flex items-center gap-1.5 text-slate-400 text-xs font-medium bg-slate-50 px-2.5 py-1 rounded-lg">
+                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <span id="view-count-index-${dorm.id}">${(dorm.total_views || 0).toLocaleString()}</span> ครั้ง
                 </div>`;
 
             const cardHTML = `
-                <div class="group bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-[0_20px_50px_rgba(0,51,153,0.1)] transition-all duration-500 overflow-hidden hover:-translate-y-2 flex flex-col h-full">
-                    <div class="relative overflow-hidden h-60">
+                <div class="group bg-white rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-100/50 transition-all duration-500 overflow-hidden hover:-translate-y-2">
+                    <div class="relative overflow-hidden h-64">
                         <img class="h-full w-full object-cover transform group-hover:scale-110 transition-transform duration-700" 
-                            src="${imageUrl}" alt="${dorm.name}" onerror="this.src='https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800'">
-                        <div class="absolute top-4 left-4 z-10">${vacancyBadge}</div>
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                             src="${imageUrl}" alt="${dorm.name}" onerror="this.src='https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800'">
+                        <div class="absolute top-4 left-4">${vacancyBadge}</div>
                     </div>
-
-                    <div class="p-6 flex flex-col flex-1">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-[#003399] text-[10px] font-black uppercase tracking-widest bg-blue-50 px-2 py-0.5 rounded-md">${dorm.dorm_type || 'หอพัก'}</span>
+                    <div class="p-8">
+                        <div class="flex justify-between items-start mb-4">
+                            <span class="text-slate-500 text-xs font-bold uppercase tracking-[0.1em]">${dorm.dorm_type || 'หอพัก'}</span>
                             ${viewCountHTML}
                         </div>
-
-                        <h3 class="font-bold text-xl text-slate-800 group-hover:text-[#003399] transition-colors mb-2 line-clamp-1">${dorm.name}</h3>
-                        
-                        <div class="flex items-center gap-1.5 text-slate-500 text-sm mb-auto">
-                            <svg class="w-4 h-4 text-rose-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" /></svg>
-                            <span class="font-medium">มทร.อีสาน <span class="text-slate-400 font-normal">(${dorm.distance_to_rmuti || '-'})</span></span>
+                        <h3 class="font-bold text-2xl text-slate-900 group-hover:text-indigo-600 transition-colors mb-2 truncate">${dorm.name}</h3>
+                        <div class="flex items-center gap-2 text-slate-500 text-sm mb-6">
+                            <i class="fa-solid fa-location-dot text-indigo-500"></i> ห่างจาก มทร.อีสาน ${dorm.distance_to_rmuti || '-'}
                         </div>
-
-                        <div class="mt-6 pt-4 border-t border-slate-50 flex justify-between items-end">
+                        <div class="pt-6 border-t border-slate-50 flex justify-between items-center">
                             <div>
-                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tight">ราคาเริ่มต้น</p>
-                                <div class="flex items-baseline gap-1">
-                                    <span class="text-2xl font-black text-emerald-600">฿${dorm.price_start.toLocaleString()}</span>
-                                    <span class="text-xs font-bold text-slate-400">/เดือน</span>
-                                </div>
+                                <p class="text-[10px] text-slate-400 font-black mb-0.5">เริ่มต้นที่</p>
+                                <span class="text-2xl font-black text-slate-900">฿${dorm.price_start.toLocaleString()}<span class="text-sm font-normal text-slate-400">/เดือน</span></span>
                             </div>
-                            <button onclick="viewDormDetail(${dorm.id})" 
-                                    class="bg-[#003399] text-white px-5 py-3 rounded-xl font-bold text-sm hover:bg-blue-800 shadow-lg shadow-blue-900/10 active:scale-95 transition-all">
-                                จองเลย
-                            </button>
+                            <button onclick="viewDormDetail(${dorm.id})" class="h-12 px-6 rounded-2xl bg-indigo-50 text-indigo-600 font-bold hover:bg-indigo-600 hover:text-white transition-all">รายละเอียด</button>
                         </div>
                     </div>
                 </div>`;
             container.insertAdjacentHTML('beforeend', cardHTML);
-        });
+        }
+        );
 
     } catch (error) {
         console.error('Error:', error);
-        container.innerHTML = `<div class="col-span-full text-center py-20 text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>`;
+        container.innerHTML = `<div class="col-span-full text-center py-20 text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูลภายนอก</div>`;
     }
+}
+
+// -------------------------------------------------------------
+// [เพิ่มใหม่] ฟังก์ชันสำหรับรองรับเวลากดปุ่มแท็กคำถามที่ AI แนะนำมา
+// -------------------------------------------------------------
+function appendSearchTag(text) {
+    const searchInput = document.getElementById('search-input');
+    const cleanText = text.replace(/[✨❓💡]/g, '').trim(); // ล้างอีโมจิออกเพื่อความสะอาดของประโยค
+    
+    // เอาประโยคเดิมที่ผู้ใช้เคยพิมพ์ มารวมเข้ากับคำแนะนำที่คลิกเลือกเพิ่ม
+    if (searchInput.value) {
+        searchInput.value = `${searchInput.value} ${cleanText}`;
+    } else {
+        searchInput.value = cleanText;
+    }
+    
+    // สั่งยิงค้นหาใหม่อีกครั้งทันทีแบบอัตโนมัติ
+    handleSearch();
 }
 
 // ฟังก์ชันสำหรับเปิดดูรายละเอียด
@@ -460,10 +505,6 @@ async function viewDormDetail(dormId) {
                 <div class="lg:col-span-1">
                     <div class="sticky top-8 bg-white border border-slate-200 p-6 rounded-2xl shadow-xl shadow-slate-200/20">
                         <div class="flex justify-between items-start mb-1">
-                            <div class="bg-blue-600 text-white p-2 rounded-lg text-center leading-tight">
-                                <div class="text-lg font-bold">8.5</div>
-                                <div class="text-[8px] uppercase">ดีเยี่ยม</div>
-                            </div>
                             <div class="text-right">
                                 <p class="text-xs text-slate-400 line-through">฿${(dorm.price_start + 500).toLocaleString()}</p>
                                 <p class="text-3xl font-bold text-orange-600">฿${dorm.price_start.toLocaleString()}</p>
@@ -472,14 +513,11 @@ async function viewDormDetail(dormId) {
                         </div>
 
                         <div class="my-6 space-y-3">
-                            <button onclick="openBookingModal(${dorm.id}, null, '${dorm.name}')"
-                                    class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
-                                จองเลยตอนนี้
-                            </button>
+                            
                             
                             <button onclick="scrollToRoomTypes(${dorm.id}, '${dorm.name}')" 
-                                    class="w-full bg-white text-blue-600 border border-blue-600 py-3 rounded-xl font-bold text-sm hover:bg-blue-50 transition-all">
-                                เลือกประเภทห้องพัก
+                                    class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
+                                จองเลยตอนนี้
                             </button>
                         </div>
 
@@ -896,7 +934,7 @@ async function trackDormView(dormId) {
 
 
 
-// ฟังก์ชันค้นหา 
+// ฟังก์ชันค้นหาอัจฉริยะด้วย AI Search
 async function handleSearch() {
     const query = document.getElementById('search-input').value.trim();
     
@@ -905,15 +943,13 @@ async function handleSearch() {
         return;
     }
 
-    // --- แก้ไขตรงนี้ ---
-    // เปลี่ยนจาก /api/public/search?q= เป็น /api/public/dorms?search=
-    // เพื่อให้มันวิ่งไปหาฟังก์ชันใหม่ใน Backend ที่เราเพิ่งเขียน ซึ่งรองรับทั้ง Search และ Sort/Filter ในตัวเดียว
-    const searchUrl = `/api/public/dorms?search=${encodeURIComponent(query)}`;
+    // ต่อ URL วิ่งเข้าหา API ค้นหาอัจฉริยะ (AI Search Service) ที่เราสกัดราคาและคีย์เวิร์ด
+    const searchUrl = `/api/public/search?q=${encodeURIComponent(query)}`;
     
-    // เรียกใช้ฟังก์ชันเดิมที่วาด Card สวยๆ ให้เราเหมือนเดิม
+    // ส่ง URL ค้นหาไปให้ฟังก์ชันวาดการ์ดแสดงผล
     fetchRecommendedDorms(searchUrl); 
 
-    // (Optional) เลื่อนหน้าจอลงมาที่รายการหอพักเพื่อให้ผู้ใช้เห็นผลลัพธ์ทันที
+    // เลื่อนหน้าจอลงมาที่รายการหอพักเพื่อให้ผู้ใช้เห็นผลลัพธ์ทันที
     document.getElementById('dorm-list-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 

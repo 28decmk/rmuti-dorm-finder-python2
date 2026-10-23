@@ -17,3 +17,7 @@ tenacity
 fastapi-mail
 slowapi==0.1.9
 openai
+google-generativeai
+pgvector
+psycopg2-binary
+google-genai

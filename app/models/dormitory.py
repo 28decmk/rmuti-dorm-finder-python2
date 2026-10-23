@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, ForeignKey, Boolean, DateT
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from ..database import Base
+from pgvector.sqlalchemy import Vector
 
 class Dormitory(Base):
     __tablename__ = "dormitories"
@@ -9,6 +10,14 @@ class Dormitory(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True, nullable=False)
     description = Column(Text)
+
+    # Vector Embedding สำหรับ Semantic Search
+    embedding = Column(
+        Vector(768),
+        nullable=True
+    )
+
+
     address = Column(String, index=True)
     
     # --- คอลัมน์ที่เพิ่มใหม่ตามที่คุณต้องการ ---

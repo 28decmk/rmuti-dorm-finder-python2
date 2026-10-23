@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Owner Dashboard | RMUTI Dorm</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -18,11 +19,17 @@
 
     <nav class="bg-indigo-900 px-6 py-4 flex justify-between items-center text-white">
         <div class="flex items-center gap-3">
-            <h1 class="text-xl font-black italic tracking-tighter">OWNER <span class="text-indigo-400 italic font-normal underline decoration-2 underline-offset-4">PORTAL</span></h1>
+            <h1 class="text-xl font-black italic tracking-tighter">OWNER <span
+                    class="text-indigo-400 italic font-normal underline decoration-2 underline-offset-4">PORTAL</span>
+            </h1>
         </div>
-        <button onclick="logout()" class="text-sm font-bold flex items-center gap-2 hover:text-indigo-300 transition-colors">
+        <button onclick="logout()"
+            class="text-sm font-bold flex items-center gap-2 hover:text-indigo-300 transition-colors">
             ออกจากระบบ
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
         </button>
     </nav>
 
@@ -38,13 +45,13 @@
             </div>
 
             <div class="flex flex-col gap-3 w-full md:w-auto">
-                <button onclick="openAddDormModal()" 
+                <button onclick="openAddDormModal()"
                     class="flex items-center justify-center gap-2 bg-indigo-600 text-white px-8 py-3.5 rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95">
                     <i class="fas fa-plus-circle"></i>
                     เพิ่ม/แก้ไขข้อมูลหอพัก
                 </button>
 
-                <button id="btn-manage-room-types" onclick="openAddRoomTypeModal()" 
+                <button id="btn-manage-room-types" onclick="openAddRoomTypeModal()"
                     class="hidden flex items-center justify-center gap-2 bg-white border-2 border-slate-200 text-slate-600 px-8 py-3.5 rounded-2xl font-bold hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 shadow-sm">
                     <i class="fas fa-door-open text-orange-500"></i>
                     จัดการประเภทห้องพัก
@@ -54,7 +61,8 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-2 space-y-6" id="my-dorms-container">
-                <div class="animate-pulse bg-white p-8 rounded-[2.5rem] border border-slate-100 h-64 flex items-center justify-center">
+                <div
+                    class="animate-pulse bg-white p-8 rounded-[2.5rem] border border-slate-100 h-64 flex items-center justify-center">
                     <p class="text-slate-400 font-bold">กำลังโหลดข้อมูลหอพักของคุณ...</p>
                 </div>
             </div>
@@ -62,10 +70,11 @@
             <div class="bg-indigo-600 rounded-[2.5rem] p-8 text-white shadow-xl shadow-indigo-100 h-fit">
                 <div class="flex justify-between items-center mb-6">
                     <h4 class="text-xl font-bold">สถิติการเข้าชม</h4>
-                    
-                    <select id="dormSelector" class="bg-indigo-500 text-white text-xs border-none rounded-lg px-2 py-1 focus:ring-2 focus:ring-white/50 outline-none">
+
+                    <select id="dormSelector"
+                        class="bg-indigo-500 text-white text-xs border-none rounded-lg px-2 py-1 focus:ring-2 focus:ring-white/50 outline-none">
                         <option value="all">หอพักทั้งหมด</option>
-                        </select>
+                    </select>
                 </div>
 
                 <div class="space-y-6">
@@ -86,7 +95,8 @@
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center">
             <div onclick="closeAddDormModal()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
 
-            <div class="inline-block w-full max-w-4xl p-8 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-[2.5rem] relative">
+            <div
+                class="inline-block w-full max-w-4xl p-8 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-[2.5rem] relative">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-2xl font-bold text-slate-800">ลงทะเบียนหอพักใหม่</h3>
                     <p class="text-sm text-slate-400">* จำเป็นต้องกรอก</p>
@@ -98,71 +108,145 @@
                         <div class="space-y-4">
                             <h4 class="font-bold text-indigo-600 text-sm uppercase tracking-wider">1. ข้อมูลทั่วไป</h4>
                             <div>
-                                <label class="block text-sm font-bold text-slate-500 uppercase mb-1">ชื่อหอพัก *</label>
-                                <input type="text" id="dorm-name" required class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">ชื่อหอพัก
+                                    *</label> <input type="text" id="dorm-name" required
+                                    class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none">
                             </div>
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
-                                    <label class="block text-sm font-bold text-slate-500 uppercase mb-1">ประเภท</label>
-                                    <select id="dorm-type" class="w-full px-3 py-3 bg-slate-50 border-none rounded-2xl outline-none text-sm">
-                                        <option value="หอพักรวม">หอพักรวม</option>
-                                        <option value="หอพักชาย">หอพักชาย</option>
-                                        <option value="หอพักหญิง">หอพักหญิง</option>
+                                    <label
+                                        class="block text-xs font-bold text-slate-500 uppercase mb-1.5">ประเภท</label>
+                                    <div class="relative">
+                                        <select id="dorm-type"
+                                            class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl appearance-none outline-none text-sm text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm cursor-pointer">
+                                            <option value="หอพักรวม">หอพักรวม</option>
+                                            <option value="หอพักชาย">หอพักชาย</option>
+                                            <option value="หอพักหญิง">หอพักหญิง</option>
+                                        </select>
+                                        <i
+                                            class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[10px]"></i>
+                                    </div>
+                                </div>
+
+                                <div class="relative">
+                                    <label
+                                        class="block text-xs font-bold text-slate-500 uppercase mb-1.5">เลือกประเภทห้อง</label>
+
+                                    <select id="room-type"
+                                        class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl appearance-none outline-none text-sm text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm cursor-pointer">
+
+                                        <option value="เตียงเดี่ยว">เตียงเดี่ยว</option>
+                                        <option value="เตียงคู่">เตียงคู่</option>
+                                        <option value="ห้องพัดลม">ห้องพัดลม</option>
+                                        <option value="ห้องแอร์">ห้องแอร์</option>
                                     </select>
+
+                                    <i
+                                        class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[10px]"></i>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">ระยะทางไป
+                                        มทร.</label>
+
+                                    <input type="hidden" id="distance-to-rmuti" value="">
+
+                                    <div
+                                        class="flex items-center bg-slate-50 border border-slate-100 rounded-2xl focus-within:ring-2 focus-within:ring-indigo-500 focus-within:bg-white transition-all shadow-sm overflow-hidden pr-1 cursor-text">
+                                        <input type="text" id="ui-distance-val" placeholder="เช่น1หรือ500"
+                                            class="w-full pl-4 py-3 bg-transparent border-none outline-none text-sm text-slate-700 placeholder:text-slate-400"
+                                            oninput="updateDistance()">
+
+                                        <div class="w-px h-5 bg-slate-200 mx-1"></div> <select id="ui-distance-unit"
+                                            class="bg-transparent border-none outline-none text-xs font-bold text-slate-500 cursor-pointer py-3 px-2 hover:text-indigo-600 appearance-none text-center"
+                                            onchange="updateDistance()">
+                                            <option value="กม.">กิโลเมตร</option>
+                                            <option value="เมตร">เมตร</option>
+                                        </select>
+                                        <i
+                                            class="fas fa-chevron-down text-slate-400 pointer-events-none text-[8px] mr-3"></i>
+                                    </div>
                                 </div>
 
-                                <div>
-                                    <label class="block text-sm font-bold text-slate-500 uppercase mb-1">ประเภทห้อง (เช่น เตียงคู่)</label>
-                                    <input type="text" id="room-type" placeholder="เตียงเดี่ยว/คู่" class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none text-sm">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold text-slate-500 uppercase mb-1">ระยะทางไป มทร. (กม./เมตร) (เน้นย้ำว่า ต้องระบุ คำว่า กม./เมตร ต่อท้ายตัวเลขเช่น 1.7 กม. หรือ 700 เมตร ทุกครั้ง)</label>
-                                    <input type="text" id="distance-to-rmuti" placeholder="เช่น 500 เมตร" class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none text-sm">
-                                </div>
+                                <script>
+                                    function updateDistance() {
+                                        const val = document.getElementById('ui-distance-val').value;
+                                        const unit = document.getElementById('ui-distance-unit').value;
+                                        const hiddenInput = document.getElementById('distance-to-rmuti');
 
+                                        // ถ้าระบุตัวเลข ให้เอาตัวเลข + เว้นวรรค + หน่วย (เช่น "1.5 กม.") ส่งให้ระบบ
+                                        if (val.trim() !== "") {
+                                            hiddenInput.value = val + " " + unit;
+                                        } else {
+                                            hiddenInput.value = "";
+                                        }
+                                    }
+                                </script>
                                 <div>
-                                    <label class="block text-sm font-bold text-slate-500 uppercase mb-1">ห้องว่าง</label>
-                                    <input type="number" id="vacancy-count" value="0" min="0" class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none">
+                                    <label class="block text-sm font-medium text-gray-700">ห้องว่าง (ห้อง) *</label>
+                                    <input type="number" id="vacancy-count" value="0" min="0"
+                                        class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all text-sm text-slate-700 shadow-sm">
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-sm font-bold text-slate-500 uppercase mb-1">ราคาเริ่มต้น (บาท) *</label>
-                                <input type="number" id="price-start" required class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">ราคาเริ่มต้น
+                                    (บาท) *</label>
+                                <input type="number" id="price-start" required
+                                    class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all text-sm text-slate-700 shadow-sm">
                             </div>
                             <div>
-                                <label class="block text-sm font-bold text-slate-500 uppercase mb-1">กรอกลิ้งค์ที่อยู่ (ลิ้งค์บน Google Map)</label>
-                                <input type="url" id="google-map" placeholder="https://goo.gl/maps/..." class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none text-xs">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">กรอกลิ้งค์ที่อยู่
+                                    (Google Map)</label>
+                                <input type="url" id="google-map" placeholder="https://goo.gl/maps/..."
+                                    class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all text-sm text-slate-700 shadow-sm">
                             </div>
                         </div>
 
                         <div class="space-y-4">
-                            <h4 class="font-bold text-indigo-600 text-sm uppercase tracking-wider">2. การติดต่อและสถานที่</h4>
+                            <h4 class="font-bold text-indigo-600 text-sm uppercase tracking-wider">2.
+                                การติดต่อและสถานที่</h4>
                             <div>
-                                <label class="block text-sm font-bold text-slate-500 uppercase mb-1">เบอร์โทรศัพท์ *</label>
-                                <input type="text" id="contact-number" required class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none">
+                                <label class="block text-sm font-bold text-slate-500 uppercase mb-1">เบอร์โทรศัพท์
+                                    *</label>
+                                <input type="text" id="contact-number" required
+                                    class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none">
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-slate-500 uppercase mb-1">Line ID</label>
-                                <input type="text" id="line-id" class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none">
+                                <input type="text" id="line-id"
+                                    class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none">
                             </div>
                             <div>
-                                <label class="block text-sm font-bold text-slate-500 uppercase mb-1">ที่อยู่หอพัก</label>
-                                <textarea id="address" rows="2" class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none text-sm"></textarea>
+                                <label
+                                    class="block text-sm font-bold text-slate-500 uppercase mb-1">ที่อยู่หอพัก</label>
+                                <textarea id="address" rows="2"
+                                    class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none text-sm"></textarea>
                             </div>
                             <div>
-                                <label class="block text-sm font-bold text-slate-500 uppercase mb-1">คำอธิบาย และ รายละเอียด หอพักของคุณ</label>
-                                <textarea id="description" rows="2" placeholder="โปรใส่ข้อมูลรายละเอียดหอพักของคุณให้ครบถ้วน และละเอียดที่สุด เพื่อให้ AI พี่หอพักของคุณตอบคำถามผู้ใช้ได้อย่างแม่นยำ" class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none text-sm"></textarea>
+                                <label class="block text-sm font-bold text-slate-500 uppercase mb-1">คำอธิบาย และ
+                                    รายละเอียด หอพักของคุณ</label>
+                                <textarea id="description" rows="2"
+                                    placeholder="โปรใส่ข้อมูลรายละเอียดหอพักของคุณให้ครบถ้วน และละเอียดที่สุด เพื่อให้ AI พี่หอพักของคุณตอบคำถามผู้ใช้ได้อย่างแม่นยำ"
+                                    class="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl outline-none text-sm"></textarea>
                             </div>
                         </div>
 
                         <div class="space-y-4">
-                            <h4 class="font-bold text-indigo-600 text-sm uppercase tracking-wider">3. รูปภาพ (สูงสุด 5 รูป)</h4>
+                            <h4 class="font-bold text-indigo-600 text-sm uppercase tracking-wider">3. รูปภาพ (สูงสุด 5
+                                รูป)</h4>
 
-                            <div id="drop-zone" class="relative group border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-[2rem] p-4 transition-all bg-slate-50/50 text-center cursor-pointer">
-                                <input type="file" id="dorm-images" multiple accept="image/jpeg,image/png,image/webp" class="hidden">
+                            <div id="drop-zone"
+                                class="relative group border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-[2rem] p-4 transition-all bg-slate-50/50 text-center cursor-pointer">
+                                <input type="file" id="dorm-images" multiple accept="image/jpeg,image/png,image/webp"
+                                    class="hidden">
                                 <div onclick="document.getElementById('dorm-images').click()">
-                                    <svg class="w-8 h-8 mx-auto text-slate-300 group-hover:text-indigo-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                    <p class="text-[10px] font-bold text-slate-400 group-hover:text-indigo-600 uppercase">คลิกเพื่ออัปโหลด</p>
+                                    <svg class="w-8 h-8 mx-auto text-slate-300 group-hover:text-indigo-500 mb-2"
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <p
+                                        class="text-[10px] font-bold text-slate-400 group-hover:text-indigo-600 uppercase">
+                                        คลิกเพื่ออัปโหลด</p>
                                     <p class="text-[9px] text-slate-400 mt-1">JPG, PNG, WEBP (Max 5MB)</p>
                                 </div>
                             </div>
@@ -170,63 +254,84 @@
                             <div id="image-preview" class="grid grid-cols-5 gap-2 mt-2">
                             </div>
 
-                            <h4 class="font-bold text-indigo-600 text-[10px] uppercase tracking-wider pt-2">สิ่งอำนวยความสะดวก</h4>
+                            <h4 class="font-bold text-indigo-600 text-[10px] uppercase tracking-wider pt-2">
+                                สิ่งอำนวยความสะดวก</h4>
                             <div class="grid grid-cols-2 gap-2 mt-2">
-                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
-                                    <input type="checkbox" id="has-wifi" class="w-4 h-4 accent-indigo-600"> <span class="text-[10px] font-bold text-slate-600">Wi-Fi</span>
+                                <label
+                                    class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-wifi" class="w-4 h-4 accent-indigo-600"> <span
+                                        class="text-[10px] font-bold text-slate-600">Wi-Fi</span>
                                 </label>
-                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
-                                    <input type="checkbox" id="has-air" class="w-4 h-4 accent-indigo-600"> <span class="text-[10px] font-bold text-slate-600">แอร์</span>
+                                <label
+                                    class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-air" class="w-4 h-4 accent-indigo-600"> <span
+                                        class="text-[10px] font-bold text-slate-600">แอร์</span>
                                 </label>
-                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
-                                    <input type="checkbox" id="has-parking" class="w-4 h-4 accent-indigo-600"> <span class="text-[10px] font-bold text-slate-600">ที่จอดรถ</span>
+                                <label
+                                    class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-parking" class="w-4 h-4 accent-indigo-600"> <span
+                                        class="text-[10px] font-bold text-slate-600">ที่จอดรถ</span>
                                 </label>
-                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
-                                    <input type="checkbox" id="has-laundry" class="w-4 h-4 accent-indigo-600"> <span class="text-[10px] font-bold text-slate-600">เครื่องซักผ้า</span>
+                                <label
+                                    class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-laundry" class="w-4 h-4 accent-indigo-600"> <span
+                                        class="text-[10px] font-bold text-slate-600">เครื่องซักผ้า</span>
                                 </label>
-                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
-                                    <input type="checkbox" id="is-pet" class="w-4 h-4 accent-indigo-600"> <span class="text-[10px] font-bold text-slate-600">เลี้ยงสัตว์</span>
+                                <label
+                                    class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="is-pet" class="w-4 h-4 accent-indigo-600"> <span
+                                        class="text-[10px] font-bold text-slate-600">เลี้ยงสัตว์</span>
                                 </label>
                             </div>
 
-                            <h4 class="font-bold text-indigo-600 text-[10px] uppercase tracking-wider pt-4">ความปลอดภัยและส่วนกลาง</h4>
+                            <h4 class="font-bold text-indigo-600 text-[10px] uppercase tracking-wider pt-4">
+                                ความปลอดภัยและส่วนกลาง</h4>
                             <div class="grid grid-cols-2 gap-2 mt-2">
-                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
-                                    <input type="checkbox" id="has-keycard" class="w-4 h-4 accent-indigo-600"> 
+                                <label
+                                    class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-keycard" class="w-4 h-4 accent-indigo-600">
                                     <span class="text-[10px] font-bold text-slate-600">คีย์การ์ด</span>
                                 </label>
-                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
-                                    <input type="checkbox" id="has-cctv" class="w-4 h-4 accent-indigo-600"> 
+                                <label
+                                    class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-cctv" class="w-4 h-4 accent-indigo-600">
                                     <span class="text-[10px] font-bold text-slate-600">กล้องวงจรปิด</span>
                                 </label>
-                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
-                                    <input type="checkbox" id="has-security" class="w-4 h-4 accent-indigo-600"> 
+                                <label
+                                    class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-security" class="w-4 h-4 accent-indigo-600">
                                     <span class="text-[10px] font-bold text-slate-600">รปภ.</span>
                                 </label>
 
-                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
-                                    <input type="checkbox" id="has-water-heater" class="w-4 h-4 accent-indigo-600"> 
+                                <label
+                                    class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-water-heater" class="w-4 h-4 accent-indigo-600">
                                     <span class="text-[10px] font-bold text-slate-600">เครื่องทำน้ำอุ่น</span>
                                 </label>
-                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
-                                    <input type="checkbox" id="has-fridge" class="w-4 h-4 accent-indigo-600"> 
+                                <label
+                                    class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-fridge" class="w-4 h-4 accent-indigo-600">
                                     <span class="text-[10px] font-bold text-slate-600">ตู้เย็น</span>
                                 </label>
-                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
-                                    <input type="checkbox" id="has-furniture" class="w-4 h-4 accent-indigo-600"> 
+                                <label
+                                    class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-furniture" class="w-4 h-4 accent-indigo-600">
                                     <span class="text-[10px] font-bold text-slate-600">เฟอร์นิเจอร์</span>
                                 </label>
 
-                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
-                                    <input type="checkbox" id="has-elevator" class="w-4 h-4 accent-indigo-600"> 
+                                <label
+                                    class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-elevator" class="w-4 h-4 accent-indigo-600">
                                     <span class="text-[10px] font-bold text-slate-600">ลิฟต์</span>
                                 </label>
-                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
-                                    <input type="checkbox" id="has-fitness" class="w-4 h-4 accent-indigo-600"> 
+                                <label
+                                    class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-fitness" class="w-4 h-4 accent-indigo-600">
                                     <span class="text-[10px] font-bold text-slate-600">ฟิตเนส</span>
                                 </label>
-                                <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
-                                    <input type="checkbox" id="has-drinking-water" class="w-4 h-4 accent-indigo-600"> 
+                                <label
+                                    class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" id="has-drinking-water" class="w-4 h-4 accent-indigo-600">
                                     <span class="text-[10px] font-bold text-slate-600">ตู้น้ำหยอดเหรียญ</span>
                                 </label>
                             </div>
@@ -235,58 +340,70 @@
                     </div>
 
                     <div class="flex gap-4 pt-6 border-t border-slate-50">
-                        <button type="button" onclick="submitAddDorm(event)" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all">ยืนยันการเพิ่มหอพัก</button>
-                        <button type="button" onclick="closeAddDormModal()" class="w-32 bg-slate-100 text-slate-500 py-4 rounded-2xl font-bold hover:bg-slate-200 transition-all">ยกเลิก</button>
+                        <button type="button" onclick="submitAddDorm(event)"
+                            class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all">ยืนยันการเพิ่มหอพัก</button>
+                        <button type="button" onclick="closeAddDormModal()"
+                            class="w-32 bg-slate-100 text-slate-500 py-4 rounded-2xl font-bold hover:bg-slate-200 transition-all">ยกเลิก</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-    
+
 
     <div id="roomTypeModal" class="fixed inset-0 z-[60] hidden overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen px-4 py-8">
             <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeRoomTypeModal()"></div>
 
-            <div class="inline-block w-full max-w-5xl overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-[2.5rem] relative">
+            <div
+                class="inline-block w-full max-w-5xl overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-[2.5rem] relative">
                 <div class="px-8 py-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
                     <div>
                         <h3 class="text-2xl font-black text-slate-900 flex items-center gap-3">
                             <i class="fas fa-door-open text-indigo-500"></i>
                             จัดการรายละเอียดประเภทห้อง
                         </h3>
-                        <p class="text-slate-500 text-sm font-medium">ระบุสิ่งอำนวยความสะดวกและราคาแยกตามประเภทห้องพัก</p>
+                        <p class="text-slate-500 text-sm font-medium">ระบุสิ่งอำนวยความสะดวกและราคาแยกตามประเภทห้องพัก
+                        </p>
                     </div>
-                    <button onclick="closeRoomTypeModal()" class="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm text-slate-400 hover:text-red-500 transition-all">
+                    <button onclick="closeRoomTypeModal()"
+                        class="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm text-slate-400 hover:text-red-500 transition-all">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
 
                 <div class="px-8 py-8 max-h-[70vh] overflow-y-auto">
                     <div class="mb-8 p-6 bg-indigo-50/50 rounded-3xl border border-indigo-100">
-                        <label class="block text-xs font-black text-indigo-600 uppercase mb-2 ml-1">หอพักที่กำลังจัดการ</label>
-                        <select id="room-type-dorm-select" class="w-full px-5 py-4 rounded-2xl border-none bg-white shadow-sm focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-slate-700">
+                        <label
+                            class="block text-xs font-black text-indigo-600 uppercase mb-2 ml-1">หอพักที่กำลังจัดการ</label>
+                        <select id="room-type-dorm-select"
+                            class="w-full px-5 py-4 rounded-2xl border-none bg-white shadow-sm focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-slate-700">
                         </select>
                     </div>
 
                     <div class="flex justify-between items-center mb-6">
-                        <h4 class="font-black text-slate-800 uppercase tracking-widest text-xs">รายการประเภทห้องทั้งหมด</h4>
-                        <button onclick="addNewRoomRow()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-100">
+                        <h4 class="font-black text-slate-800 uppercase tracking-widest text-xs">รายการประเภทห้องทั้งหมด
+                        </h4>
+                        <button onclick="addNewRoomRow()"
+                            class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-100">
                             <i class="fas fa-plus"></i> เพิ่มประเภทห้อง
                         </button>
                     </div>
 
                     <div id="room-rows-container">
-                        </div>
+                    </div>
                 </div>
 
                 <div class="px-8 py-6 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
-                    <p class="text-xs text-slate-400 font-medium">* ข้อมูลราคาจะถูกนำไปแสดงเป็น "ราคาเริ่มต้น" อัตโนมัติ</p>
+                    <p class="text-xs text-slate-400 font-medium">* ข้อมูลราคาจะถูกนำไปแสดงเป็น "ราคาเริ่มต้น" อัตโนมัติ
+                    </p>
                     <div class="flex gap-3">
-                        <button onclick="closeRoomTypeModal()" class="px-8 py-3.5 text-slate-500 font-bold hover:bg-slate-200 rounded-2xl transition-all">
+                        <button onclick="closeRoomTypeModal()"
+                            class="px-8 py-3.5 text-slate-500 font-bold hover:bg-slate-200 rounded-2xl transition-all">
                             ยกเลิก
                         </button>
-                        <button onclick="saveRoomTypes()" class="px-10 py-3.5 bg-indigo-600 text-white font-bold rounded-2xl shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95">
+                        <button onclick="saveRoomTypes()"
+                            class="px-10 py-3.5 bg-indigo-600 text-white font-bold rounded-2xl shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95">
                             <i class="fas fa-save mr-2"></i> บันทึกข้อมูลห้องพัก
                         </button>
                     </div>
@@ -297,19 +414,24 @@
 
 
     <div id="roomTypeViewModal" class="fixed inset-0 z-[70] hidden overflow-y-auto">
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeRoomTypeViewModal()"></div>
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+            onclick="closeRoomTypeViewModal()"></div>
         <div class="flex min-h-full items-center justify-center p-4">
-            <div class="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden transform transition-all">
-                
+            <div
+                class="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden transform transition-all">
+
                 <div class="relative h-72 bg-slate-100">
-                    <div id="room-view-images" class="flex h-full overflow-x-auto snap-x snap-mandatory scrollbar-hide"></div>
-                    
+                    <div id="room-view-images" class="flex h-full overflow-x-auto snap-x snap-mandatory scrollbar-hide">
+                    </div>
+
                     <div class="absolute top-5 right-5 flex gap-2 z-10">
-                        <button id="btn-edit-room-type" onclick="handleEditFromView()" class="w-10 h-10 bg-amber-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-amber-600 hover:scale-110 transition-all">
+                        <button id="btn-edit-room-type" onclick="handleEditFromView()"
+                            class="w-10 h-10 bg-amber-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-amber-600 hover:scale-110 transition-all">
                             <i class="fas fa-pen text-sm"></i>
                         </button>
 
-                        <button onclick="closeRoomTypeViewModal()" class="w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-all text-slate-800">
+                        <button onclick="closeRoomTypeViewModal()"
+                            class="w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-all text-slate-800">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -319,27 +441,32 @@
                     <div class="flex justify-between items-start mb-6">
                         <div>
                             <h3 id="room-view-name" class="text-2xl font-black text-slate-800 mb-1">ชื่อประเภทห้อง</h3>
-                            <div id="room-view-price" class="text-xl font-bold text-indigo-600 font-mono">฿0 / เดือน</div>
+                            <div id="room-view-price" class="text-xl font-bold text-indigo-600 font-mono">฿0 / เดือน
+                            </div>
                         </div>
                         <div id="room-view-vacancy" class="px-4 py-2 rounded-2xl font-bold text-sm">
-                            </div>
+                        </div>
                     </div>
 
                     <div class="space-y-6">
                         <div>
-                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">รายละเอียด</h4>
-                            <p id="room-view-description" class="text-slate-600 leading-relaxed text-sm">ไม่มีรายละเอียด</p>
+                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">รายละเอียด
+                            </h4>
+                            <p id="room-view-description" class="text-slate-600 leading-relaxed text-sm">ไม่มีรายละเอียด
+                            </p>
                         </div>
 
                         <div>
-                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">สิ่งอำนวยความสะดวกในห้อง</h4>
+                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">
+                                สิ่งอำนวยความสะดวกในห้อง</h4>
                             <div id="room-view-amenities" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <div class="mt-8 pt-6 border-t border-slate-100">
-                        <button onclick="closeRoomTypeViewModal()" class="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all">
+                        <button onclick="closeRoomTypeViewModal()"
+                            class="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all">
                             ปิดหน้าต่างนี้
                         </button>
                     </div>
@@ -349,92 +476,123 @@
     </div>
 
 
-    <div id="editRoomTypeModal" class="fixed inset-0 z-[100] hidden overflow-y-auto overflow-x-hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="relative bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
-            
+    <div id="editRoomTypeModal"
+        class="fixed inset-0 z-[100] hidden overflow-y-auto overflow-x-hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div
+            class="relative bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+
             <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                 <div>
                     <h3 class="text-xl font-black text-slate-800">แก้ไขประเภทห้องพัก</h3>
                     <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Room Type Editor</p>
                 </div>
-                <button type="button" onclick="closeEditRoomTypeModal()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white hover:shadow-md transition-all text-slate-400 hover:text-red-500">
+                <button type="button" onclick="closeEditRoomTypeModal()"
+                    class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white hover:shadow-md transition-all text-slate-400 hover:text-red-500">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
 
             <form onsubmit="submitEditRoomType(event)" class="p-8">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    
+
                     <div class="md:col-span-2">
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">ชื่อประเภทห้องพัก</label>
+                        <label
+                            class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">ชื่อประเภทห้องพัก</label>
                         <input type="text" id="edit-room-name" required
-                            class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700" placeholder="เช่น ห้องแอร์เตียงคู่">
+                            class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700"
+                            placeholder="เช่น ห้องแอร์เตียงคู่">
                     </div>
 
                     <div class="md:col-span-2">
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">รูปภาพ (คลิกกากบาทเพื่อลบ / กด + เพื่อเพิ่ม)</label>
-                        <div class="flex flex-wrap gap-4 p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        <label
+                            class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">รูปภาพ
+                            (คลิกกากบาทเพื่อลบ / กด + เพื่อเพิ่ม)</label>
+                        <div
+                            class="flex flex-wrap gap-4 p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                             <div id="edit-room-images-container" class="flex flex-wrap gap-4"></div>
-                            <label class="w-20 h-20 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-white hover:border-indigo-500 hover:text-indigo-500 transition-all group">
+                            <label
+                                class="w-20 h-20 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-white hover:border-indigo-500 hover:text-indigo-500 transition-all group">
                                 <i class="fas fa-plus text-lg mb-1"></i>
                                 <span class="text-[10px] font-bold">เพิ่มรูป</span>
-                                <input type="file" id="edit-room-images-input" multiple accept="image/*" class="hidden" onchange="handleRoomFileSelect(event)">
+                                <input type="file" id="edit-room-images-input" multiple accept="image/*" class="hidden"
+                                    onchange="handleRoomFileSelect(event)">
                             </label>
                         </div>
                         <div id="new-room-images-preview" class="flex flex-wrap gap-4 mt-4"></div>
                     </div>
 
                     <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">ราคาต่อเดือน (บาท)</label>
+                        <label
+                            class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">ราคาต่อเดือน
+                            (บาท)</label>
                         <input type="number" id="edit-room-price" required
                             class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700">
                     </div>
 
                     <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">จำนวนห้องว่าง</label>
+                        <label
+                            class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">จำนวนห้องว่าง</label>
                         <input type="number" id="edit-room-vacancy" required
                             class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700">
                     </div>
 
                     <div class="md:col-span-2">
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">รายละเอียดเพิ่มเติม</label>
+                        <label
+                            class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">รายละเอียดเพิ่มเติม</label>
                         <textarea id="edit-room-description" rows="3"
                             class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700"></textarea>
                     </div>
 
                     <div class="md:col-span-2">
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">สิ่งอำนวยความสะดวก</label>
+                        <label
+                            class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">สิ่งอำนวยความสะดวก</label>
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
-                                <input type="checkbox" id="edit-has-air-conditioner" class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                            <label
+                                class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
+                                <input type="checkbox" id="edit-has-air-conditioner"
+                                    class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
                                 <span class="text-xs font-bold text-slate-600">แอร์</span>
                             </label>
-                            <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
-                                <input type="checkbox" id="edit-has-fan" class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                            <label
+                                class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
+                                <input type="checkbox" id="edit-has-fan"
+                                    class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
                                 <span class="text-xs font-bold text-slate-600">พัดลม</span>
                             </label>
-                            <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
-                                <input type="checkbox" id="edit-has-refrigerator" class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                            <label
+                                class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
+                                <input type="checkbox" id="edit-has-refrigerator"
+                                    class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
                                 <span class="text-xs font-bold text-slate-600">ตู้เย็น</span>
                             </label>
-                            <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
-                                <input type="checkbox" id="edit-has-tv" class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                            <label
+                                class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
+                                <input type="checkbox" id="edit-has-tv"
+                                    class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
                                 <span class="text-xs font-bold text-slate-600">ทีวี</span>
                             </label>
-                            <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
-                                <input type="checkbox" id="edit-has-water-heater" class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                            <label
+                                class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
+                                <input type="checkbox" id="edit-has-water-heater"
+                                    class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
                                 <span class="text-xs font-bold text-slate-600">เครื่องทำน้ำอุ่น</span>
                             </label>
-                            <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
-                                <input type="checkbox" id="edit-has-balcony" class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                            <label
+                                class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
+                                <input type="checkbox" id="edit-has-balcony"
+                                    class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
                                 <span class="text-xs font-bold text-slate-600">ระเบียง</span>
                             </label>
-                            <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
-                                <input type="checkbox" id="edit-has-kitchen-sink" class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                            <label
+                                class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
+                                <input type="checkbox" id="edit-has-kitchen-sink"
+                                    class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
                                 <span class="text-xs font-bold text-slate-600">ซิงค์ล้างจาน</span>
                             </label>
-                            <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
-                                <input type="checkbox" id="edit-has-microwave" class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                            <label
+                                class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer border border-slate-100 hover:bg-white transition-all">
+                                <input type="checkbox" id="edit-has-microwave"
+                                    class="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300">
                                 <span class="text-xs font-bold text-slate-600">ไมโครเวฟ</span>
                             </label>
                         </div>
@@ -442,7 +600,7 @@
                 </div>
 
                 <div class="mt-8 flex gap-3">
-                    <button type="submit" 
+                    <button type="submit"
                         class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-indigo-200 transition-all transform active:scale-95">
                         บันทึกการแก้ไข
                     </button>
@@ -461,7 +619,8 @@
             <div>
                 <h3 class="text-2xl font-black text-slate-900 flex items-center gap-3">
                     <span class="relative flex h-3 w-3">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                        <span
+                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                         <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
                     </span>
                     รายการจองที่รอการจัดการ
@@ -469,14 +628,20 @@
                 <p class="text-slate-500 text-sm font-medium mt-1">ตรวจสอบและยืนยันสถานะการเข้าพักของนักศึกษา</p>
             </div>
             <div class="flex items-center gap-2 bg-white border border-slate-100 p-1.5 rounded-2xl shadow-sm">
-                <span id="booking-count-badge" class="bg-indigo-600 text-white px-4 py-1.5 rounded-xl text-xs font-black tracking-wider uppercase">0 รายการ</span>
+                <span id="booking-count-badge"
+                    class="bg-indigo-600 text-white px-4 py-1.5 rounded-xl text-xs font-black tracking-wider uppercase">0
+                    รายการ</span>
             </div>
         </div>
 
         <div id="booking-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="col-span-full py-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-100">
+            <div
+                class="col-span-full py-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-100">
                 <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 00-2 2z"/></svg>
+                    <svg class="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 00-2 2z" />
+                    </svg>
                 </div>
                 <p class="text-slate-400 font-bold text-lg">ไม่มีรายการจองใหม่ในขณะนี้</p>
                 <p class="text-slate-300 text-sm">เมื่อมีการจอง ข้อมูลจะปรากฏขึ้นที่นี่อัตโนมัติ</p>
@@ -489,7 +654,7 @@
     <script>
         // ป้องกันการกดย้อนกลับ (Back Button) โดยการดันสถานะปัจจุบันเข้า History ตลอดเวลา
         history.pushState(null, null, window.location.href);
-        window.onpopstate = function() {
+        window.onpopstate = function () {
             history.go(1); // ถ้ากดย้อนกลับ ให้มันกระเด้งไปข้างหน้า 1 จังหวะ (ก็คืออยู่ที่เดิม)
         };
 

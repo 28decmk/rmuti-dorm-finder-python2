@@ -1,10 +1,10 @@
 import os
 import json
-from openai import OpenAI
+from google import genai
+from google.genai import types  # เพิ่มสำหรับตั้งค่า Config
 
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
+client = genai.Client(
+    api_key=os.getenv("GEMINI_API_KEY")
 )
 
 async def get_ai_response(dorm_data: dict, user_message: str):
@@ -70,13 +70,19 @@ async def get_ai_response(dorm_data: dict, user_message: str):
 
     prompt = f"ข้อมูลหอพัก: {json.dumps(clean_data, ensure_ascii=False, indent=2)}\n\nคำถาม: {user_message}"
     
-    # --- 3. เรียก AI ---
-    response = client.chat.completions.create(
-        model="google/gemini-2.0-flash-001",
-        messages=[
-            {"role": "system", "content": system_instruction},
-            {"role": "user", "content": prompt}
-        ],
-        extra_headers={"HTTP-Referer": "http://localhost:8000", "X-Title": "ITMSU Hackathon AI"}
-    )
-    return response.choices[0].message.content 
+    # --- 3. เรียก AI ภายใต้ try-except ---
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            # ส่ง system_instruction ผ่าน config แยกออกมาเพื่อให้ AI ล็อกบทบาทได้นิ่งขึ้น
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                temperature=0.3 # เพิ่มความยืดหยุ่นให้ดูเป็นธรรมชาติ (ไม่ทื่อเกินไป)
+            )
+        )
+        return response.text
+
+    except Exception as e:
+        print("GEMINI ERROR =", e)
+        return "ขออภัยค่ะ ระบบ AI ไม่พร้อมใช้งานชั่วคราว"
